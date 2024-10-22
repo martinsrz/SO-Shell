@@ -65,8 +65,8 @@ void shellLoop(bool exit)
         processCommand(&entry, &history, &openFiles, &exit);
     }
 
-    free(history);
-    free(openFiles);
+    deleteList(&history);
+    deleteList(&openFiles);
 }
 
 void printPrompt()
@@ -476,16 +476,19 @@ void initOpenFiles(tList *openFiles)
 
     d.fileDescriptor = STDIN_FILENO;
     strcpy(d.command, "entrada estandar");
+    d.mode = 0;
     d.mode |= fcntl(d.fileDescriptor, F_GETFL);
     insertItem(d, LNULL, openFiles);
 
     d.fileDescriptor = STDOUT_FILENO;
     strcpy(d.command, "salida estandar");
+    d.mode = 0;
     d.mode |= fcntl(d.fileDescriptor, F_GETFL);
     insertItem(d, LNULL, openFiles);
 
     d.fileDescriptor = STDERR_FILENO;
     strcpy(d.command, "error estandar");
+    d.mode = 0;
     d.mode |= fcntl(d.fileDescriptor, F_GETFL);
     insertItem(d, LNULL, openFiles);
 }

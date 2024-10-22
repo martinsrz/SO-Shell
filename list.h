@@ -33,6 +33,8 @@ void updateItem(tItem d, tPos p, tList *L);
 
 void deleteAtPosition(tPos p, tList *L);
 
+void deleteList(tList *L);
+
 bool isEmptyList(tList L);
 
 tPos findItem(command d, tList L);

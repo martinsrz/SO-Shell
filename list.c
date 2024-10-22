@@ -62,6 +62,18 @@ void deleteAtPosition(tPos p, tList *L)
     free(p);
 }
 
+void deleteList(tList *L)
+{
+    tPos p;
+			
+	while (*L != LNULL)
+	{
+		p = *L;
+		*L = p->next;
+		free(p);
+	}
+}
+
 bool isEmptyList(tList L)
 {
   return (L == LNULL);
