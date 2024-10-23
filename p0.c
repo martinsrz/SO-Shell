@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/stat.h>
 #include <sys/utsname.h>
 #include "list.h"
 
@@ -24,8 +25,17 @@ void cmdHistoric(char *param2, tList historic, tList *openFiles, bool *exit);
 void cmdOpen(char *param2, char *param3, tList *openFiles);
 void cmdClose(char *param2, tList *openFiles);
 void cmdDup();
-void cmdHelp(char *param2);
 void cmdInfosys();
+void cmdMakefile(char *param2);
+void cmdMakedir(char *param2);
+void cmdListfile(char *param2);
+void cmdCwd();
+void cmdListdir();
+void cmdReclist();
+void cmdRevlist();
+void cmdErase();
+void cmdDelrec();
+void cmdHelp(char *param2);
 void initOpenFiles(tList *openFiles);
 void printOpenFiles(tList openFiles);
 
@@ -144,6 +154,18 @@ void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, ch
     else if (strcmp(param1, "infosys") == 0)
     {
         cmdInfosys();
+    }
+    else if (strcmp(param1, "makefile") == 0)
+    {
+        cmdMakefile(param2);
+    }
+    else if (strcmp(param1, "makedir") == 0)
+    {
+        cmdMakedir(param2);
+    }
+    else if (strcmp(param1, "cwd") == 0)
+    {
+        cmdCwd();
     }
     else if (strcmp(param1, "help") == 0)
     {
@@ -368,7 +390,8 @@ void cmdDup(char *param2, tList *openFiles)
     tItem duplicado;
     char aux[64];
 
-    if (param2 == NULL || (df = atoi(param2)) < 0) {
+    if (param2 == NULL || (df = atoi(param2)) < 0)
+    {
         printOpenFiles(*openFiles);
         return;
     }
@@ -403,6 +426,56 @@ void cmdInfosys()
     uname(&unameData);
 
     printf("%s (%s), OS: %s-%s-%s\n", unameData.nodename, unameData.machine, unameData.sysname, unameData.release, unameData.version);
+}
+
+void cmdMakefile(char *param2)
+{
+    if (param2 == NULL)
+    {
+        cmdCwd();
+        return;
+    }
+
+    FILE *file;
+    char path[256];
+    char *filename = param2;
+    getcwd(path, sizeof(path));
+    strcat(path, "/");
+    strcat(path, filename);
+
+    if ((file = fopen(path, "w")) == NULL) {
+        perror("Error al crear el archivo");
+        return;
+    }
+
+    fclose(file);
+}
+
+void cmdMakedir(char *param2)
+{
+    if (param2 == NULL)
+    {
+        cmdCwd();
+        return;
+    }
+
+    char path[256];
+    char *foldername = param2;
+    getcwd(path, sizeof(path));
+    strcat(path, "/");
+    strcat(path, foldername);
+
+    if (mkdir(foldername, 0755) == -1)
+    {
+        perror("Error al crear la carpeta");
+    }
+}
+
+void cmdCwd()
+{
+    char dir[256];
+    getcwd(dir, sizeof(dir));
+    printf("%s\n", dir);
 }
 
 void cmdHelp(char *param2)
