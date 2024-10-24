@@ -408,7 +408,7 @@ void cmdDup(char *param2, tList *openFiles)
     duplicado.mode = p->data.mode;
 
     strcpy(aux, p->data.command);
-    sprintf (duplicado.command, "dup %d (%s)", df, aux);
+    sprintf (duplicado.command, "duplicado de %d (%s)", df, aux);
 
     if (duplicado.fileDescriptor != (-1))
     {
@@ -546,23 +546,27 @@ void cmdHelp(char *param2)
 void initOpenFiles(tList *openFiles)
 {
     tItem d;
+    int flags;
 
     d.fileDescriptor = STDIN_FILENO;
     strcpy(d.command, "entrada estandar");
+    flags = fcntl(d.fileDescriptor, F_GETFL);
     d.mode = 0;
-    d.mode |= fcntl(d.fileDescriptor, F_GETFL);
+    d.mode = flags & O_ACCMODE;
     insertItem(d, LNULL, openFiles);
 
     d.fileDescriptor = STDOUT_FILENO;
     strcpy(d.command, "salida estandar");
+    flags = fcntl(d.fileDescriptor, F_GETFL);
     d.mode = 0;
-    d.mode |= fcntl(d.fileDescriptor, F_GETFL);
+    d.mode = flags & O_ACCMODE;
     insertItem(d, LNULL, openFiles);
 
     d.fileDescriptor = STDERR_FILENO;
     strcpy(d.command, "error estandar");
+    flags = fcntl(d.fileDescriptor, F_GETFL);
     d.mode = 0;
-    d.mode |= fcntl(d.fileDescriptor, F_GETFL);
+    d.mode = flags & O_ACCMODE;
     insertItem(d, LNULL, openFiles);
 }
 
@@ -570,14 +574,24 @@ void printOpenFiles(tList openFiles)
 {
     tPos p = first(openFiles);
     tItem d;
+    off_t offset;
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 20; i++)
     {
-        printf("descriptor: %d -> ", i);
+        printf("descriptor: %d, offset: (", i);
 
         if (p != LNULL)
         {
             d = getItem(p, openFiles);
+
+            if ((offset = lseek(d.fileDescriptor, 0, SEEK_CUR)) == -1)
+            {
+                printf("  )-> ");
+            }
+            else
+            {
+                printf("%ld)-> ", offset);
+            }
 
             printf("%s ", d.command); // Mostrar el nombre del archivo
 
@@ -595,7 +609,7 @@ void printOpenFiles(tList openFiles)
         }
         else
         {
-            printf("no usado\n");
+            printf("  )-> no usado\n");
         }
     }
 }
