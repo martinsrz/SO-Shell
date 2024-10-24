@@ -1,12 +1,14 @@
+#include <pwd.h>
+#include <grp.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <getopt.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
+#include <linux/limits.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include "list.h"
@@ -48,7 +50,39 @@ int main()
     return 0;
 }
 
-int trocearCadena(char * cadena, char * trozos[])
+void limpiarCadena(char *str)
+{
+    char *end;
+
+    end = str + strlen(str) - 1;
+    while (end > str && (*end == ' ' || *end == '\n' || *end == '\r' || *end == '\t'))
+    {
+        *end = '\0';
+        end--;
+    }
+}
+
+int separarArgumentos(char *cadena, char *trozos[])
+{
+    char *token = strtok(cadena, " \n\t");
+    if (!token) return 0;
+
+    trozos[0] = token;      // Primer string
+
+    token = strtok(NULL, "");
+    if (token != NULL)              // Resto de la cadena
+    {
+        limpiarCadena(token);
+        trozos[1] = token;
+    } else
+    {
+        trozos[1] = NULL;
+    }
+
+    return 2;
+}
+
+int trocearCadena(char *cadena, char *trozos[])
 {
     int i=1;
 
@@ -57,6 +91,42 @@ int trocearCadena(char * cadena, char * trozos[])
     while ((trozos[i]=strtok(NULL," \n\t"))!=NULL)
         i++;
     return i;
+}
+
+char LetraTF (mode_t m)
+{
+    switch (m&S_IFMT) { /*and bit a bit con los bits de formato,0170000 */
+        case S_IFSOCK: return 's'; /*socket */
+        case S_IFLNK: return 'l'; /*symbolic link*/
+        case S_IFREG: return '-'; /* fichero normal*/
+        case S_IFBLK: return 'b'; /*block device*/
+        case S_IFDIR: return 'd'; /*directorio */
+        case S_IFCHR: return 'c'; /*char device*/
+        case S_IFIFO: return 'p'; /*pipe*/
+        default: return '?'; /*desconocido, no deberia aparecer*/
+    }
+}
+
+char *convierteModo (mode_t m)
+{
+    static char permisos[12];
+    strcpy (permisos,"---------- ");
+
+    permisos[0]=LetraTF(m);
+    if (m&S_IRUSR) permisos[1]='r';    /*propietario*/
+    if (m&S_IWUSR) permisos[2]='w';
+    if (m&S_IXUSR) permisos[3]='x';
+    if (m&S_IRGRP) permisos[4]='r';    /*grupo*/
+    if (m&S_IWGRP) permisos[5]='w';
+    if (m&S_IXGRP) permisos[6]='x';
+    if (m&S_IROTH) permisos[7]='r';    /*resto*/
+    if (m&S_IWOTH) permisos[8]='w';
+    if (m&S_IXOTH) permisos[9]='x';
+    if (m&S_ISUID) permisos[3]='s';    /*setuid, setgid y stickybit*/
+    if (m&S_ISGID) permisos[6]='s';
+    if (m&S_ISVTX) permisos[9]='t';
+
+    return permisos;
 }
 
 void shellLoop(bool exit)
@@ -106,7 +176,7 @@ void processCommand(command *cmnd, tList *commandList, tList *openFiles, bool *e
     command aux;
     char *tr[COMMAND_LEN];
     strcpy(aux, *cmnd);
-    int parameters = trocearCadena(*cmnd, tr);
+    int parameters = separarArgumentos(*cmnd, tr);
 
     if (parameters == 0) return;
 
@@ -162,6 +232,10 @@ void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, ch
     else if (strcmp(param1, "makedir") == 0)
     {
         cmdMakedir(param2);
+    }
+    else if (strcmp(param1, "listfile") == 0)
+    {
+        cmdListfile(param2);
     }
     else if (strcmp(param1, "cwd") == 0)
     {
@@ -463,14 +537,108 @@ void cmdMakedir(char *param2)
     }
 
     char path[256];
+    char fullPath[PATH_MAX];
     char *foldername = param2;
     getcwd(path, sizeof(path));
     strcat(path, "/");
-    strcat(path, foldername);
+    snprintf(fullPath, sizeof(fullPath), "%s%s", path, param2);
 
-    if (mkdir(foldername, 0755) == -1)
+    if (mkdir(fullPath, 0755) == -1)
     {
         perror("Error al crear la carpeta");
+    }
+}
+
+void cmdListfile(char *param2)
+{
+    if (param2 == NULL)
+    {
+        cmdCwd();
+        return;
+    }
+
+    struct stat fileStat;
+    char *tr[COMMAND_LEN];
+    char fecha[20], acc[20], path[256];
+    char *permisos;
+    int arguments = trocearCadena(param2, tr);
+    int lastArgument = 0;
+    int cmdMode[3] = {0,0,0};
+
+    if (arguments > 0)
+    {
+        if (strcmp(tr[lastArgument], "-long") == 0) cmdMode[0] = 1, lastArgument++;
+        if (strcmp(tr[lastArgument], "-acc") == 0) cmdMode[1] = 1, lastArgument++;
+        if (strcmp(tr[lastArgument], "-link") == 0) cmdMode[2] = 1, lastArgument++;
+    }
+
+    if (tr[lastArgument] == NULL)   // no hay filename despues de los parametros opcionales
+    {
+        cmdCwd();
+        return;
+    }
+
+    getcwd(path, sizeof(path));
+    strcat(path, "/");
+
+    for (int i = lastArgument; i < arguments; i++)
+    {
+        char *filename = tr[i];
+        char fullPath[PATH_MAX];
+        snprintf(fullPath, sizeof(fullPath), "%s%s", path, filename);
+
+        if (lstat(fullPath, &fileStat) == -1)
+        {
+            perror("****error al acceder al archivo");
+        }
+        else
+        {
+            if (cmdMode[0] == 1)
+            {
+                struct tm *timeinfo = localtime(&fileStat.st_mtime);
+                strftime(fecha, sizeof(fecha), "%Y/%m/%d-%H:%M", timeinfo);
+                permisos = convierteModo(fileStat.st_mode);
+                timeinfo = localtime(&fileStat.st_mtime);
+                struct passwd *pw = getpwuid(fileStat.st_uid);
+                struct group *gr = getgrgid(fileStat.st_gid);
+
+                printf("%s %3ld (%8lu)%s%s %s %8ld %s\n", fecha, fileStat.st_nlink, fileStat.st_ino, pw ? pw->pw_name : "???",
+                gr ? gr->gr_name : "???", permisos, fileStat.st_size, filename);
+            }
+            else if (cmdMode[1] == 1)
+            {
+                struct tm *timeinfo = localtime(&fileStat.st_atime);
+                strftime(acc, sizeof(acc), "%Y/%m/%d-%H:%M", timeinfo);
+
+                printf("%8ld  %s %s\n", fileStat.st_size, acc, filename);
+            }
+            else if (cmdMode[2] == 1)
+            {
+                char filetype = LetraTF(fileStat.st_mode);
+
+                if (filetype == 'l')
+                {
+                    char linkPath[PATH_MAX] = "";
+                    ssize_t len = readlink(fullPath, linkPath, sizeof(linkPath)-1);
+
+                    if (len == -1)
+                    {
+                        perror("Error al leer el enlace simbolico");
+                    }
+
+                    printf("%8ld %s", fileStat.st_size, filename);
+                    printf(" -> %s\n", linkPath);
+                }
+                else
+                {
+                    printf("%8ld %s\n", fileStat.st_size, filename);
+                }
+            }
+            else
+            {
+                printf("%8ld %s\n", fileStat.st_size, filename);
+            }
+        }
     }
 }
 
