@@ -15,14 +15,14 @@ void shellLoop(bool exit);
 void printPrompt();
 void readCommand(command *command, tList *commandList);
 void processCommand(command *cmnd, tList *commandList, tList *openFiles, bool *exit);
-void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, char *param2, char *param3);
+void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, char *param2);
 void cmdAuthors(char *param2);
 void cmdPid();
 void cmdPpid();
 void cmdCd();
 void cmdDate(char *param2);
 void cmdHistoric(char *param2, tList historic, tList *openFiles, bool *exit);
-void cmdOpen(char *param2, char *param3, tList *openFiles);
+void cmdOpen(char *param2, tList *openFiles);
 void cmdClose(char *param2, tList *openFiles);
 void cmdDup();
 void cmdInfosys();
@@ -110,10 +110,10 @@ void processCommand(command *cmnd, tList *commandList, tList *openFiles, bool *e
 
     if (parameters == 0) return;
 
-    commands(commandList, openFiles, exit, tr[0], tr[1], tr[2]);
+    commands(commandList, openFiles, exit, tr[0], tr[1]);
 }
 
-void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, char *param2, char *param3)
+void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, char *param2)
 {
     if (strcmp(param1, "authors") == 0)
     {
@@ -141,7 +141,7 @@ void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, ch
     }
     else if (strcmp(param1, "open") == 0)
     {
-        cmdOpen(param2, param3, openFiles);
+        cmdOpen(param2, openFiles);
     }
     else if (strcmp(param1, "close") == 0)
     {
@@ -281,7 +281,7 @@ void cmdHistoric(char *param2, tList historic, tList *openFiles, bool *exit)
             printf("Ejecutando hist (%d): %s\n", n, aux);
 
             trocearCadena(aux, tr);
-            commands(&historic, openFiles, exit, tr[0], tr[1], tr[2]);
+            commands(&historic, openFiles, exit, tr[0], tr[1]);
         }
 
     }
@@ -307,33 +307,36 @@ void cmdHistoric(char *param2, tList historic, tList *openFiles, bool *exit)
     else printf("Comando no reconocido\n");
 }
 
-void cmdOpen(char *param2, char *param3, tList *openFiles)
+void cmdOpen(char *param2, tList *openFiles)
 {
     int df;
     int mode = 0;
     tItem file;
+    char *tr[COMMAND_LEN];
 
-    if (param2 == NULL)
+    trocearCadena(param2, tr);
+
+    if (tr[0] == NULL)
     {
         printOpenFiles(*openFiles);
         return;
     }
 
-    if (param3 == NULL)
+    if (tr[1] == NULL)
     {
         mode |= O_RDONLY;
     }
     else
     {
-        if (strcmp(param3, "cr") == 0) mode |= O_CREAT;
-        else if (strcmp(param3, "ex") == 0) mode |= O_EXCL;
-        else if (strcmp(param3, "ro") == 0) mode |= O_RDONLY;
-        else if (strcmp(param3, "wo") == 0) mode |= O_WRONLY;
-        else if (strcmp(param3, "rw") == 0) mode |= O_RDWR;
-        else if (strcmp(param3, "ap") == 0) mode |= O_APPEND;
-        else if (strcmp(param3, "tr") == 0) mode |= O_TRUNC;
+        if (strcmp(tr[1], "cr") == 0) mode |= O_CREAT;
+        else if (strcmp(tr[1], "ex") == 0) mode |= O_EXCL;
+        else if (strcmp(tr[1], "ro") == 0) mode |= O_RDONLY;
+        else if (strcmp(tr[1], "wo") == 0) mode |= O_WRONLY;
+        else if (strcmp(tr[1], "rw") == 0) mode |= O_RDWR;
+        else if (strcmp(tr[1], "ap") == 0) mode |= O_APPEND;
+        else if (strcmp(tr[1], "tr") == 0) mode |= O_TRUNC;
         else {
-            printf("Modo %s no reconocido\n", param3);
+            printf("Modo %s no reconocido\n", tr[1]);
             return;
         }
     }
