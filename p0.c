@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
@@ -32,7 +33,7 @@ void cmdMakefile(char *param2);
 void cmdMakedir(char *param2);
 void cmdListfile(char *param2);
 void cmdCwd();
-void cmdListdir();
+void cmdListdir(char *param2);
 void cmdReclist();
 void cmdRevlist();
 void cmdErase();
@@ -240,6 +241,10 @@ void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, ch
     else if (strcmp(param1, "cwd") == 0)
     {
         cmdCwd();
+    }
+    else if (strcmp(param1, "listdir") == 0)
+    {
+        cmdListdir(param2);
     }
     else if (strcmp(param1, "help") == 0)
     {
@@ -537,13 +542,12 @@ void cmdMakedir(char *param2)
     }
 
     char path[256];
-    char fullPath[PATH_MAX];
     char *foldername = param2;
     getcwd(path, sizeof(path));
     strcat(path, "/");
-    snprintf(fullPath, sizeof(fullPath), "%s%s", path, param2);
+    strcat(path, foldername);
 
-    if (mkdir(fullPath, 0755) == -1)
+    if (mkdir(path, 0755) == -1)
     {
         perror("Error al crear la carpeta");
     }
@@ -559,7 +563,7 @@ void cmdListfile(char *param2)
 
     struct stat fileStat;
     char *tr[COMMAND_LEN];
-    char fecha[20], acc[20], path[256];
+    char fecha[20], acc[20], path[256], fullPath[PATH_MAX];
     char *permisos;
     int arguments = trocearCadena(param2, tr);
     int lastArgument = 0;
@@ -568,8 +572,8 @@ void cmdListfile(char *param2)
     if (arguments > 0)
     {
         if (strcmp(tr[lastArgument], "-long") == 0) cmdMode[0] = 1, lastArgument++;
-        if (strcmp(tr[lastArgument], "-acc") == 0) cmdMode[1] = 1, lastArgument++;
-        if (strcmp(tr[lastArgument], "-link") == 0) cmdMode[2] = 1, lastArgument++;
+        if (lastArgument < arguments && strcmp(tr[lastArgument], "-acc") == 0) cmdMode[1] = 1, lastArgument++;
+        if (lastArgument < arguments && strcmp(tr[lastArgument], "-link") == 0) cmdMode[2] = 1, lastArgument++;
     }
 
     if (tr[lastArgument] == NULL)   // no hay filename despues de los parametros opcionales
@@ -584,7 +588,6 @@ void cmdListfile(char *param2)
     for (int i = lastArgument; i < arguments; i++)
     {
         char *filename = tr[i];
-        char fullPath[PATH_MAX];
         snprintf(fullPath, sizeof(fullPath), "%s%s", path, filename);
 
         if (lstat(fullPath, &fileStat) == -1)
@@ -647,6 +650,114 @@ void cmdCwd()
     char dir[256];
     getcwd(dir, sizeof(dir));
     printf("%s\n", dir);
+}
+
+void cmdListdir(char *param2)
+{
+    if (param2 == NULL)
+    {
+        cmdCwd();
+        return;
+    }
+
+    struct stat fileStat;
+    struct dirent *entry;
+    DIR *dir;
+    char *tr[COMMAND_LEN];
+    char fecha[20], acc[20], path[256], fullPath[PATH_MAX];
+    char *permisos;
+    int arguments = trocearCadena(param2, tr);
+    int lastArgument = 0;
+    int cmdMode[4] = {0, 0, 0, 0};
+
+    if (arguments > 0)
+    {
+        if (strcmp(tr[lastArgument], "-hid") == 0) cmdMode[0] = 1, lastArgument++;
+        if (lastArgument < arguments && strcmp(tr[lastArgument], "-long") == 0) cmdMode[1] = 1, lastArgument++;
+        if (lastArgument < arguments && strcmp(tr[lastArgument], "-acc") == 0) cmdMode[2] = 1, lastArgument++;
+        if (lastArgument < arguments && strcmp(tr[lastArgument], "-link") == 0) cmdMode[3] = 1, lastArgument++;
+    }
+
+    if (tr[lastArgument] == NULL)
+    {
+        cmdCwd();
+        return;
+    }
+
+    getcwd(path, sizeof(path));
+    snprintf(path, sizeof(path), "%s", tr[lastArgument]);
+
+    if ((dir = opendir(path)) == NULL)
+    {
+        perror("****error al abrir el directorio");
+        return;
+    }
+
+    printf("************%s\n", path);
+
+    while ((entry = readdir(dir)) != NULL)
+    {
+        if (!cmdMode[0] && entry->d_name[0] == '.')
+        {
+            // si encuentra un archivo oculto sin -hid no lo muestra por ello no hacemos nada
+        }
+        else
+        {
+            snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
+
+            if (lstat(fullPath, &fileStat) == -1)
+            {
+                perror("****error al acceder al archivo");
+            }
+            else
+            {
+                if (cmdMode[1] == 1)
+                {
+                    struct tm *timeinfo = localtime(&fileStat.st_mtime);
+                    strftime(fecha, sizeof(fecha), "%Y/%m/%d-%H:%M", timeinfo);
+                    permisos = convierteModo(fileStat.st_mode);
+                    struct passwd *pw = getpwuid(fileStat.st_uid);
+                    struct group *gr = getgrgid(fileStat.st_gid);
+
+                    printf("%s %3ld (%8lu) %s %s %s %8ld %s\n", fecha, fileStat.st_nlink, fileStat.st_ino,
+                           pw ? pw->pw_name : "???", gr ? gr->gr_name : "???", permisos, fileStat.st_size, entry->d_name);
+                }
+                else if (cmdMode[2] == 1)
+                {
+                    struct tm *timeinfo = localtime(&fileStat.st_atime);
+                    strftime(acc, sizeof(acc), "%Y/%m/%d-%H:%M", timeinfo);
+                    printf("%8ld  %s %s\n", fileStat.st_size, acc, entry->d_name);
+                }
+                else if (cmdMode[3] == 1)
+                {
+                    char filetype = LetraTF(fileStat.st_mode);
+                    if (filetype == 'l') {
+                        char linkPath[PATH_MAX] = "";
+                        ssize_t len = readlink(fullPath, linkPath, sizeof(linkPath) - 1);
+
+                        if (len == -1)
+                        {
+                            perror("Error al leer el enlace simbolico");
+                            continue;
+                        }
+                        linkPath[len] = '\0'; // Null-terminar la cadena
+
+                        printf("%8ld %s -> %s\n", fileStat.st_size, entry->d_name, linkPath);
+                    }
+                    else
+                    {
+                        printf("%8ld %s\n", fileStat.st_size, entry->d_name);
+                    }
+                }
+                else
+                {
+                    printf("%8ld %s\n", fileStat.st_size, entry->d_name);
+                }
+            }
+        }
+    }
+
+    closedir(dir);
 }
 
 void cmdHelp(char *param2)
