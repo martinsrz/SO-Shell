@@ -36,8 +36,8 @@ void cmdCwd();
 void cmdListdir(char *param2);
 void cmdReclist();
 void cmdRevlist();
-void cmdErase();
-void cmdDelrec();
+void cmdErase(char *directory);
+void cmdDelrec(char *directory);
 void cmdHelp(char *param2);
 void initOpenFiles(tList *openFiles);
 void printOpenFiles(tList openFiles);
@@ -245,6 +245,14 @@ void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, ch
     else if (strcmp(param1, "listdir") == 0)
     {
         cmdListdir(param2);
+    }
+    else if (strcmp(param1, "erase") == 0)
+    {
+        cmdErase(param2);
+    }
+    else if (strcmp(param1, "delrec") == 0)
+    {
+        cmdDelrec(param2);
     }
     else if (strcmp(param1, "help") == 0)
     {
@@ -758,6 +766,107 @@ void cmdListdir(char *param2)
     }
 
     closedir(dir);
+}
+
+bool isEmptyDir(const char *directory)
+{
+    struct dirent *entry;
+    int entry_count = 0;
+    DIR *d = opendir(directory);
+    while ((entry = readdir(d)) != NULL)
+    {
+        if ((strcmp(entry->d_name, ".") == 0) || (strcmp(entry->d_name, "..") == 0)) continue;
+        entry_count ++;
+    }
+    closedir(d);
+    return entry_count == 0;
+}
+
+
+void cmdErase(char *directory)
+{
+    struct stat fileStat;
+    stat(directory, &fileStat);
+
+    if(LetraTF(fileStat.st_mode) == 'd')
+    {
+        if(isEmptyDir(directory))
+        {
+            rmdir(directory);
+            printf("Removed directory: %s\n", directory);
+        }
+        else
+            {
+            perror("Not an empty directory");
+        }
+    }
+    else if(remove(directory) == 0)
+    {
+        printf("Removed file: %s\n", directory);
+    }
+    else
+    {
+        perror("Specify a valid file or directory");
+    }
+}
+
+void cmdDelrec(char *directory)
+{
+    if (directory == NULL)
+    {
+        cmdCwd();
+        return;
+    }
+
+    struct stat fileStat;
+    struct dirent *entry;
+    DIR *dir;
+    char aux[PATH_MAX];
+
+    if (stat(directory, &fileStat) == -1)
+    {
+        perror("No existe el archivo o directorio");
+        return;
+    }
+
+    char filetype = LetraTF(fileStat.st_mode);
+
+    if (filetype == 'd')
+    {
+        dir = opendir(directory);
+        if (dir == NULL)
+        {
+            perror("No se pudo abrir el directorio");
+            return;
+        }
+
+        while ((entry = readdir(dir)) != NULL)
+        {
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            {
+                // no hacemos nada cuando los archivos sean . o ..
+            }
+            else
+            {
+                snprintf(aux, sizeof(aux), "%s/%s", directory, entry->d_name);
+
+                cmdDelrec(aux);
+            }
+        }
+        closedir(dir);
+
+        if (rmdir(directory) != 0)
+        {
+            perror("Error al eliminar el directorio");
+        }
+    }
+    else
+    {
+        if (remove(directory) != 0)
+        {
+            perror("Error al eliminar el archivo");
+        }
+    }
 }
 
 void cmdHelp(char *param2)

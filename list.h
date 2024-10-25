@@ -7,7 +7,7 @@
 
 #define COMMAND_LEN 256
 #define LNULL NULL
-
+#define MAX_LENGTH 256
 typedef char command[COMMAND_LEN];
 
 typedef struct tNode *tPos;
