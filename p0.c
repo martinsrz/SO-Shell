@@ -703,75 +703,77 @@ void cmdListdir(char *param2)
     }
 
     getcwd(path, sizeof(path));
-    snprintf(path, sizeof(path), "%s", tr[lastArgument]);
+    strcat(path, "/");
 
-    if ((dir = opendir(path)) == NULL)
+    for (int i = lastArgument; i < arguments; i++)
     {
-        perror("****error al abrir el directorio");
-        return;
-    }
-
-    printf("************%s\n", path);
-
-    while ((entry = readdir(dir)) != NULL)
-    {
-        if (!cmdMode[0] && entry->d_name[0] == '.') continue;
-
-        snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
-
-        if (lstat(fullPath, &fileStat) == -1)
+        if ((dir = opendir(path)) == NULL)
         {
-            perror("****error al acceder al archivo");
+            perror("****error al abrir el directorio");
+            return;
         }
-        else
+
+        printf("************%s%s\n", path, tr[i]);
+
+        while ((entry = readdir(dir)) != NULL)
         {
-            if (cmdMode[1] == 1)
-            {
-                struct tm *timeinfo = localtime(&fileStat.st_mtime);
-                strftime(fecha, sizeof(fecha), "%Y/%m/%d-%H:%M", timeinfo);
-                permisos = convierteModo(fileStat.st_mode);
-                struct passwd *pw = getpwuid(fileStat.st_uid);
-                struct group *gr = getgrgid(fileStat.st_gid);
+            if (!cmdMode[0] && entry->d_name[0] == '.') continue;
 
-                printf("%s %3ld (%8lu) %s %s %s %8ld %s\n", fecha, fileStat.st_nlink, fileStat.st_ino,
-                    pw ? pw->pw_name : "???", gr ? gr->gr_name : "???", permisos, fileStat.st_size, entry->d_name);
-            }
-            else if (cmdMode[2] == 1)
-            {
-                struct tm *timeinfo = localtime(&fileStat.st_atime);
-                strftime(acc, sizeof(acc), "%Y/%m/%d-%H:%M", timeinfo);
-                printf("%8ld  %s %s\n", fileStat.st_size, acc, entry->d_name);
-            }
-            else if (cmdMode[3] == 1)
-            {
-                char filetype = LetraTF(fileStat.st_mode);
+            snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
 
-                if (filetype == 'l')
+            if (lstat(fullPath, &fileStat) == -1)
+            {
+                perror("****error al acceder al archivo");
+            }
+            else
+            {
+                if (cmdMode[1] == 1)
                 {
-                    char linkPath[PATH_MAX] = "";
-                    ssize_t len = readlink(fullPath, linkPath, sizeof(linkPath) - 1);
+                    struct tm *timeinfo = localtime(&fileStat.st_mtime);
+                    strftime(fecha, sizeof(fecha), "%Y/%m/%d-%H:%M", timeinfo);
+                    permisos = convierteModo(fileStat.st_mode);
+                    struct passwd *pw = getpwuid(fileStat.st_uid);
+                    struct group *gr = getgrgid(fileStat.st_gid);
 
-                    if (len == -1)
+                    printf("%s %3ld (%8lu) %s %s %s %8ld %s\n", fecha, fileStat.st_nlink, fileStat.st_ino,
+                        pw ? pw->pw_name : "???", gr ? gr->gr_name : "???", permisos, fileStat.st_size, entry->d_name);
+                }
+                else if (cmdMode[2] == 1)
+                {
+                    struct tm *timeinfo = localtime(&fileStat.st_atime);
+                    strftime(acc, sizeof(acc), "%Y/%m/%d-%H:%M", timeinfo);
+                    printf("%8ld  %s %s\n", fileStat.st_size, acc, entry->d_name);
+                }
+                else if (cmdMode[3] == 1)
+                {
+                    char filetype = LetraTF(fileStat.st_mode);
+
+                    if (filetype == 'l')
                     {
-                        perror("Error al leer el enlace simbolico");
-                        continue;
-                    }
+                        char linkPath[PATH_MAX] = "";
+                        ssize_t len = readlink(fullPath, linkPath, sizeof(linkPath) - 1);
 
-                    linkPath[len] = '\0';
-                    printf("%8ld %s -> %s\n", fileStat.st_size, entry->d_name, linkPath);
+                        if (len == -1)
+                        {
+                            perror("Error al leer el enlace simbolico");
+                            continue;
+                        }
+
+                        linkPath[len] = '\0';
+                        printf("%8ld %s -> %s\n", fileStat.st_size, entry->d_name, linkPath);
+                    }
+                    else
+                    {
+                        printf("%8ld %s\n", fileStat.st_size, entry->d_name);
+                    }
                 }
                 else
                 {
                     printf("%8ld %s\n", fileStat.st_size, entry->d_name);
                 }
             }
-            else
-            {
-                printf("%8ld %s\n", fileStat.st_size, entry->d_name);
-            }
         }
     }
-
     closedir(dir);
 }
 
