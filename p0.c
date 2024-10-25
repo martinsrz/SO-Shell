@@ -34,9 +34,9 @@ void cmdMakedir(char *param2);
 void cmdListfile(char *param2);
 void cmdCwd();
 void cmdListdir(char *param2);
-void cmdReclist();
-void cmdRevlist();
-void cmdErase(char *directory);
+void cmdReclist(char *param2, int *cmdMode);
+void cmdRevlist(char *param2, int *cmdMode);
+void cmdErase(char *param2);
 void cmdDelrec(char *directory);
 void cmdHelp(char *param2);
 void initOpenFiles(tList *openFiles);
@@ -246,6 +246,16 @@ void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, ch
     {
         cmdListdir(param2);
     }
+    else if (strcmp(param1, "reclist") == 0)
+    {
+        int cmdMode[4] = {-1, 0, 0, 0};
+        cmdReclist(param2, cmdMode);
+    }
+    else if (strcmp(param1, "revlist") == 0)
+    {
+        int cmdMode[4] = {-1, 0, 0, 0};
+        cmdRevlist(param2, cmdMode);
+    }
     else if (strcmp(param1, "erase") == 0)
     {
         cmdErase(param2);
@@ -411,17 +421,17 @@ void cmdOpen(char *param2, tList *openFiles)
 
     if (tr[1] == NULL)
     {
-        mode |= O_RDONLY;
+        mode = O_RDONLY;
     }
-    else
+    if (tr[1] != NULL)
     {
-        if (strcmp(tr[1], "cr") == 0) mode |= O_CREAT;
-        else if (strcmp(tr[1], "ex") == 0) mode |= O_EXCL;
-        else if (strcmp(tr[1], "ro") == 0) mode |= O_RDONLY;
-        else if (strcmp(tr[1], "wo") == 0) mode |= O_WRONLY;
-        else if (strcmp(tr[1], "rw") == 0) mode |= O_RDWR;
-        else if (strcmp(tr[1], "ap") == 0) mode |= O_APPEND;
-        else if (strcmp(tr[1], "tr") == 0) mode |= O_TRUNC;
+        if (strcmp(tr[1], "cr") == 0) mode = O_CREAT;
+        else if (strcmp(tr[1], "ex") == 0) mode = O_EXCL;
+        else if (strcmp(tr[1], "ro") == 0) mode = O_RDONLY;
+        else if (strcmp(tr[1], "wo") == 0) mode = O_WRONLY;
+        else if (strcmp(tr[1], "rw") == 0) mode = O_RDWR;
+        else if (strcmp(tr[1], "ap") == 0) mode = O_APPEND;
+        else if (strcmp(tr[1], "tr") == 0) mode = O_TRUNC;
         else {
             printf("Modo %s no reconocido\n", tr[1]);
             return;
@@ -630,7 +640,7 @@ void cmdListfile(char *param2)
                 if (filetype == 'l')
                 {
                     char linkPath[PATH_MAX] = "";
-                    ssize_t len = readlink(fullPath, linkPath, sizeof(linkPath)-1);
+                    ssize_t len = readlink(fullPath, linkPath, sizeof(linkPath) - 1);
 
                     if (len == -1)
                     {
@@ -705,68 +715,322 @@ void cmdListdir(char *param2)
 
     while ((entry = readdir(dir)) != NULL)
     {
-        if (!cmdMode[0] && entry->d_name[0] == '.')
+        if (!cmdMode[0] && entry->d_name[0] == '.') continue;
+
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
+
+        if (lstat(fullPath, &fileStat) == -1)
         {
-            // si encuentra un archivo oculto sin -hid no lo muestra por ello no hacemos nada
+            perror("****error al acceder al archivo");
         }
         else
         {
-            snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
-
-            if (lstat(fullPath, &fileStat) == -1)
+            if (cmdMode[1] == 1)
             {
-                perror("****error al acceder al archivo");
+                struct tm *timeinfo = localtime(&fileStat.st_mtime);
+                strftime(fecha, sizeof(fecha), "%Y/%m/%d-%H:%M", timeinfo);
+                permisos = convierteModo(fileStat.st_mode);
+                struct passwd *pw = getpwuid(fileStat.st_uid);
+                struct group *gr = getgrgid(fileStat.st_gid);
+
+                printf("%s %3ld (%8lu) %s %s %s %8ld %s\n", fecha, fileStat.st_nlink, fileStat.st_ino,
+                    pw ? pw->pw_name : "???", gr ? gr->gr_name : "???", permisos, fileStat.st_size, entry->d_name);
             }
-            else
+            else if (cmdMode[2] == 1)
             {
-                if (cmdMode[1] == 1)
-                {
-                    struct tm *timeinfo = localtime(&fileStat.st_mtime);
-                    strftime(fecha, sizeof(fecha), "%Y/%m/%d-%H:%M", timeinfo);
-                    permisos = convierteModo(fileStat.st_mode);
-                    struct passwd *pw = getpwuid(fileStat.st_uid);
-                    struct group *gr = getgrgid(fileStat.st_gid);
+                struct tm *timeinfo = localtime(&fileStat.st_atime);
+                strftime(acc, sizeof(acc), "%Y/%m/%d-%H:%M", timeinfo);
+                printf("%8ld  %s %s\n", fileStat.st_size, acc, entry->d_name);
+            }
+            else if (cmdMode[3] == 1)
+            {
+                char filetype = LetraTF(fileStat.st_mode);
 
-                    printf("%s %3ld (%8lu) %s %s %s %8ld %s\n", fecha, fileStat.st_nlink, fileStat.st_ino,
-                           pw ? pw->pw_name : "???", gr ? gr->gr_name : "???", permisos, fileStat.st_size, entry->d_name);
-                }
-                else if (cmdMode[2] == 1)
+                if (filetype == 'l')
                 {
-                    struct tm *timeinfo = localtime(&fileStat.st_atime);
-                    strftime(acc, sizeof(acc), "%Y/%m/%d-%H:%M", timeinfo);
-                    printf("%8ld  %s %s\n", fileStat.st_size, acc, entry->d_name);
-                }
-                else if (cmdMode[3] == 1)
-                {
-                    char filetype = LetraTF(fileStat.st_mode);
-                    if (filetype == 'l') {
-                        char linkPath[PATH_MAX] = "";
-                        ssize_t len = readlink(fullPath, linkPath, sizeof(linkPath) - 1);
+                    char linkPath[PATH_MAX] = "";
+                    ssize_t len = readlink(fullPath, linkPath, sizeof(linkPath) - 1);
 
-                        if (len == -1)
-                        {
-                            perror("Error al leer el enlace simbolico");
-                            continue;
-                        }
-                        linkPath[len] = '\0'; // Null-terminar la cadena
-
-                        printf("%8ld %s -> %s\n", fileStat.st_size, entry->d_name, linkPath);
-                    }
-                    else
+                    if (len == -1)
                     {
-                        printf("%8ld %s\n", fileStat.st_size, entry->d_name);
+                        perror("Error al leer el enlace simbolico");
+                        continue;
                     }
+
+                    linkPath[len] = '\0';
+                    printf("%8ld %s -> %s\n", fileStat.st_size, entry->d_name, linkPath);
                 }
                 else
                 {
                     printf("%8ld %s\n", fileStat.st_size, entry->d_name);
                 }
             }
+            else
+            {
+                printf("%8ld %s\n", fileStat.st_size, entry->d_name);
+            }
         }
     }
 
     closedir(dir);
 }
+
+void cmdReclist(char *param2, int *cmdMode)
+{
+    if (param2 == NULL)
+    {
+        cmdCwd();
+        return;
+    }
+
+    DIR *dir;
+    struct dirent *entry;
+    struct stat fileStat;
+    char *tr[COMMAND_LEN];
+    char fullPath[PATH_MAX];
+    char fecha[20], acc[20];
+    char *permisos;
+    char *path = param2;
+
+    if (cmdMode[0] == -1)
+    {
+        int arguments = trocearCadena(param2, tr);
+        cmdMode[0] = cmdMode[1] = cmdMode[2] = cmdMode[3] = 0;
+
+        for (int i = 0; i < arguments; i++)
+        {
+            if (strcmp(tr[i], "-hid") == 0)
+                cmdMode[0] = 1;
+            else if (strcmp(tr[i], "-long") == 0)
+                cmdMode[1] = 1;
+            else if (strcmp(tr[i], "-acc") == 0)
+                cmdMode[2] = 1;
+            else if (strcmp(tr[i], "-link") == 0)
+                cmdMode[3] = 1;
+            else
+                path = tr[i]; // si no es parametro opcional es el path
+        }
+    }
+
+    if ((dir = opendir(path)) == NULL)
+    {
+        perror("****error al abrir el directorio");
+        return;
+    }
+
+    printf("************%s\n", path);
+
+    while ((entry = readdir(dir)) != NULL)
+    {
+        if (!cmdMode[0] && entry->d_name[0] == '.') continue;
+
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
+
+        if (lstat(fullPath, &fileStat) == -1)
+        {
+            perror("****error al acceder al archivo");
+            continue;
+        }
+
+        char filetype = LetraTF(fileStat.st_mode);
+
+        if (cmdMode[1] == 1)
+        {
+            struct tm *timeinfo = localtime(&fileStat.st_mtime);
+            strftime(fecha, sizeof(fecha), "%Y/%m/%d-%H:%M", timeinfo);
+            permisos = convierteModo(fileStat.st_mode);
+            struct passwd *pw = getpwuid(fileStat.st_uid);
+            struct group *gr = getgrgid(fileStat.st_gid);
+
+            printf("%s %3ld (%8lu) %s %s %s %8ld %s\n", fecha, fileStat.st_nlink, fileStat.st_ino,
+                   pw ? pw->pw_name : "???", gr ? gr->gr_name : "???", permisos, fileStat.st_size, entry->d_name);
+        }
+        else if (cmdMode[2] == 1)
+        {
+            struct tm *timeinfo = localtime(&fileStat.st_atime);
+            strftime(acc, sizeof(acc), "%Y/%m/%d-%H:%M", timeinfo);
+            printf("%8ld  %s %s\n", fileStat.st_size, acc, entry->d_name);
+        }
+        else if (cmdMode[3] == 1)
+        {
+            if (filetype == 'l')
+            {
+                char linkPath[PATH_MAX] = "";
+                ssize_t len = readlink(fullPath, linkPath, sizeof(linkPath) - 1);
+
+                if (len != -1)
+                {
+                    printf("%8ld %s -> %s\n", fileStat.st_size, entry->d_name, linkPath);
+                }
+                else
+                {
+                    perror("Error al leer el enlace simbólico");
+                }
+            }
+            else
+            {
+                printf("%8ld %s\n", fileStat.st_size, entry->d_name);
+            }
+        }
+        else
+        {
+            printf("%8ld %s\n", fileStat.st_size, entry->d_name);
+        }
+    }
+
+    rewinddir(dir);
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (!cmdMode[0] && entry->d_name[0] == '.') continue;
+
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
+
+        if (lstat(fullPath, &fileStat) == -1)
+        {
+            perror("****error al acceder al archivo");
+            continue;
+        }
+
+        char filetype = LetraTF(fileStat.st_mode);
+
+        if (filetype == 'd' && strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0 && entry->d_name[0] != '.')
+        {
+            cmdReclist(fullPath, cmdMode);
+        }
+    }
+
+    closedir(dir);
+}
+
+void cmdRevlist(char *param2, int *cmdMode)
+{
+    if (param2 == NULL)
+    {
+        cmdCwd();
+        return;
+    }
+
+    DIR *dir;
+    struct dirent *entry;
+    struct stat fileStat;
+    char *tr[COMMAND_LEN];
+    char fullPath[PATH_MAX];
+    char fecha[20], acc[20];
+    char *permisos;
+    char *path = param2;
+
+    if (cmdMode[0] == -1)
+    {
+        int arguments = trocearCadena(param2, tr);
+        cmdMode[0] = cmdMode[1] = cmdMode[2] = cmdMode[3] = 0;
+
+        for (int i = 0; i < arguments; i++)
+        {
+            if (strcmp(tr[i], "-hid") == 0)
+                cmdMode[0] = 1;
+            else if (strcmp(tr[i], "-long") == 0)
+                cmdMode[1] = 1;
+            else if (strcmp(tr[i], "-acc") == 0)
+                cmdMode[2] = 1;
+            else if (strcmp(tr[i], "-link") == 0)
+                cmdMode[3] = 1;
+            else
+                path = tr[i]; // si no es parametro opcional es el path
+        }
+    }
+
+    if ((dir = opendir(path)) == NULL)
+    {
+        perror("****error al abrir el directorio");
+        return;
+    }
+
+    while ((entry = readdir(dir)) != NULL)
+    {
+        if (!cmdMode[0] && entry->d_name[0] == '.') continue;
+
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
+
+        if (lstat(fullPath, &fileStat) == -1)
+        {
+            perror("****error al acceder al archivo");
+            continue;
+        }
+
+        char filetype = LetraTF(fileStat.st_mode);
+
+        if (filetype == 'd' && strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
+        {
+            cmdRevlist(fullPath, cmdMode);
+        }
+    }
+
+    rewinddir(dir);
+
+    printf("************%s\n", path);
+
+    while ((entry = readdir(dir)) != NULL) {
+
+        if (!cmdMode[0] && entry->d_name[0] == '.') continue;
+
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
+
+        if (lstat(fullPath, &fileStat) == -1)
+        {
+            perror("****error al acceder al archivo");
+            continue;
+        }
+
+        char filetype = LetraTF(fileStat.st_mode);
+
+        if (cmdMode[1] == 1)
+        {
+            struct tm *timeinfo = localtime(&fileStat.st_mtime);
+            strftime(fecha, sizeof(fecha), "%Y/%m/%d-%H:%M", timeinfo);
+            permisos = convierteModo(fileStat.st_mode);
+            struct passwd *pw = getpwuid(fileStat.st_uid);
+            struct group *gr = getgrgid(fileStat.st_gid);
+
+            printf("%s %3ld (%8lu) %s %s %s %8ld %s\n", fecha, fileStat.st_nlink, fileStat.st_ino,
+                   pw ? pw->pw_name : "???", gr ? gr->gr_name : "???", permisos, fileStat.st_size, entry->d_name);
+        }
+        else if (cmdMode[2] == 1)
+        {
+            struct tm *timeinfo = localtime(&fileStat.st_atime);
+            strftime(acc, sizeof(acc), "%Y/%m/%d-%H:%M", timeinfo);
+            printf("%8ld  %s %s\n", fileStat.st_size, acc, entry->d_name);
+        }
+        else if (cmdMode[3] == 1)
+        {
+            if (filetype == 'l')
+            {
+                char linkPath[PATH_MAX] = "";
+                ssize_t len = readlink(fullPath, linkPath, sizeof(linkPath) - 1);
+
+                if (len != -1)
+                {
+                    printf("%8ld %s -> %s\n", fileStat.st_size, entry->d_name, linkPath);
+                }
+                else
+                {
+                    perror("Error al leer el enlace simbólico");
+                }
+            }
+            else
+            {
+                printf("%8ld %s\n", fileStat.st_size, entry->d_name);
+            }
+        }
+        else
+        {
+            printf("%8ld %s\n", fileStat.st_size, entry->d_name);
+        }
+    }
+
+    closedir(dir);
+}
+
+
 
 bool isEmptyDir(const char *directory)
 {
@@ -887,7 +1151,8 @@ void cmdHelp(char *param2)
 {
     if (param2 == NULL)
     {
-        printf("'help [cmd|-lt|-T topic]' ayuda sobre comandos\n\t\t\t\tComandos disponibles:\nauthors pid ppid cd date historic open close dup infosys help quit exit bye\n");
+        printf("'help [cmd]' ayuda sobre comandos\n\t\t\t\tComandos disponibles:\nauthors pid ppid cd date historic open close dup infosys "
+               "makefile makedir listfile cwd listdir reclist revlist erase delrec help quit exit bye\n");
     }
     else if (strcmp(param2, "authors") == 0)
     {
@@ -928,6 +1193,46 @@ void cmdHelp(char *param2)
     else if (strcmp(param2, "infosys") == 0)
     {
         printf("infosys\t\tMuestra informacion de la maquina donde se ejecuta el shell\n");
+    }
+    else if (strcmp(param2, "makefile") == 0)
+    {
+        printf("makefile [name]\tCrea un fichero de nombre name\n");
+    }
+    else if (strcmp(param2, "makedir") == 0)
+    {
+        printf("makedir [name]\tCrea un directorio de nombre name\n");
+    }
+    else if (strcmp(param2, "listfile") == 0)
+    {
+        printf("listfile [-long] [-acc] [-link] n1 n2 ..\tlista ficheros\n\t-long: listado largo\n\t-acc: acesstime\n\t-link: "
+               "si es enlace simbolico, el path contenido\n");
+    }
+    else if (strcmp(param2, "cwd") == 0)
+    {
+        printf("cwd\tMuestra el directorio actual del shell\n");
+    }
+    else if (strcmp(param2, "listdir") == 0)
+    {
+        printf("listdir [-hid] [-long] [-acc] [-link] n1 n2 ..\tlista contenidos de directorios\n\t-hid: incluye los ficheros ocultos"
+               "\n\t-long: listado largo\n\t-acc: acesstime\n\t-link: si es enlace simbolico, el path contenido\n");
+    }
+    else if (strcmp(param2, "reclist") == 0)
+    {
+        printf("reclist [-hid] [-long] [-acc] [-link] n1 n2 ..\tlista recursivamente contenidos de directorios (subdirs despues)"
+               "\n\t-hid: incluye los ficheros ocultos\n\t-long: listado largo\n\t-acc: acesstime\n\t-link: si es enlace simbolico, el path contenido\n");
+    }
+    else if (strcmp(param2, "revlist") == 0)
+    {
+        printf("revlist [-hid] [-long] [-acc] [-link] n1 n2 ..\tlista recursivamente contenidos de directorios (subdirs antes)"
+               "\n\t-hid: incluye los ficheros ocultos\n\t-long: listado largo\n\t-acc: acesstime\n\t-link: si es enlace simbolico, el path contenido\n");
+    }
+    else if (strcmp(param2, "erase") == 0)
+    {
+        printf("erase [name1 name2 ..]\tBorra ficheros o directorios vacios\n");
+    }
+    else if (strcmp(param2, "delrec") == 0)
+    {
+        printf("delrec [name1 name2 ..]\tBorra ficheros o directorios no vacios recursivamente\n");
     }
     else if (strcmp(param2, "help") == 0)
     {
@@ -1000,13 +1305,13 @@ void printOpenFiles(tList openFiles)
 
             printf("%s ", d.command); // Mostrar el nombre del archivo
 
-            if (d.mode & O_CREAT) printf("O_CREAT ");
-            if (d.mode & O_EXCL) printf("O_EXCL ");
-            if (d.mode & O_RDONLY) printf("O_RDONLY ");
-            if (d.mode & O_WRONLY) printf("O_WRONLY ");
-            if (d.mode & O_RDWR) printf("O_RDWR ");
-            if (d.mode & O_APPEND) printf("O_APPEND ");
-            if (d.mode & O_TRUNC) printf("O_TRUNC ");
+            if (d.mode == O_CREAT) printf("O_CREAT ");
+            if (d.mode == O_EXCL) printf("O_EXCL ");
+            if (d.mode == O_RDONLY) printf("O_RDONLY ");
+            if (d.mode == O_WRONLY) printf("O_WRONLY ");
+            if (d.mode == O_RDWR) printf("O_RDWR ");
+            if (d.mode == O_APPEND) printf("O_APPEND ");
+            if (d.mode == O_TRUNC) printf("O_TRUNC ");
 
             printf("\n");
 
