@@ -1,3 +1,6 @@
+// Martín Tubio Suaŕez
+// Diego Candal Varela
+
 #include <pwd.h>
 #include <grp.h>
 #include <ctype.h>

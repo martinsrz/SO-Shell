@@ -1,3 +1,6 @@
+// Martín Tubio Suaŕez
+// Diego Candal Varela
+
 #include "list.h"
 
 bool createNode(tPos *p)

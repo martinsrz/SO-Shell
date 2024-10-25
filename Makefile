@@ -1,6 +1,6 @@
-shell.out: p0.c list.o
+shell.out: p1.c list.o
 
-	gcc -g -Wall -o shell.out p0.c list.o
+	gcc -g -Wall -o shell.out p1.c list.o
 
 list.o: list.h list.c
 
@@ -8,5 +8,5 @@ list.o: list.h list.c
 
 valgrind:
 
-	gcc -g -O0 -Wall -o shell.out p0.c list.o
+	gcc -g -O0 -Wall -o shell.out p1.c list.o
 	valgrind -s --leak-check=full --show-reachable=yes ./shell.out

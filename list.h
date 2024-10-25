@@ -1,3 +1,6 @@
+// Martín Tubio Suaŕez
+// Diego Candal Varela
+
 #ifndef LIST_H
 #define LIST_H
 
