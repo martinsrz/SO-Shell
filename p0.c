@@ -783,30 +783,39 @@ bool isEmptyDir(const char *directory)
 }
 
 
-void cmdErase(char *directory)
+void cmdErase(char *param2)
 {
-    struct stat fileStat;
-    stat(directory, &fileStat);
+    if (param2 == NULL)
+    {
+        cmdCwd();
+        return;
+    }
 
-    if(LetraTF(fileStat.st_mode) == 'd')
+    char *directory = param2;
+    struct stat fileStat;
+
+    if (stat(directory, &fileStat) == -1)
+    {
+        perror("No existe el archivo o directorio");
+        return;
+    }
+
+    char filetype = LetraTF(fileStat.st_mode);
+
+    if(filetype == 'd')
     {
         if(isEmptyDir(directory))
         {
             rmdir(directory);
-            printf("Removed directory: %s\n", directory);
         }
         else
             {
-            perror("Not an empty directory");
+            perror("El directorio no esta vacio");
         }
     }
-    else if(remove(directory) == 0)
+    else if(remove(directory) != 0)
     {
-        printf("Removed file: %s\n", directory);
-    }
-    else
-    {
-        perror("Specify a valid file or directory");
+        perror("El directorio no es valido");
     }
 }
 
@@ -815,6 +824,11 @@ void cmdDelrec(char *directory)
     if (directory == NULL)
     {
         cmdCwd();
+        return;
+    }
+    if (strcmp(directory, ".") == 0 || strcmp(directory, "..") == 0)
+    {
+        perror("Error al eliminar el directorio");
         return;
     }
 
@@ -862,16 +876,9 @@ void cmdDelrec(char *directory)
     }
     else
     {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+        if (remove(directory) != 0)
         {
-            // no hacemos nada cuando los archivos sean . o ..
-        }
-        else
-        {
-            if (remove(directory) != 0)
-            {
-                perror("Error al eliminar el archivo");
-            }
+            perror("Error al eliminar el archivo");
         }
     }
 }
