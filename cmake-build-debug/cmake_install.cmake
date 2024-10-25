@@ -1,4 +1,4 @@
-# Install script for directory: /home/martinsrz/Escritorio/GEI/2do/3Q/SO/Practicas/SO-Shell
+# Install script for directory: /home/martinsrz/Escritorio/SO-Shell
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/martinsrz/Escritorio/GEI/2do/3Q/SO/Practicas/SO-Shell/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/martinsrz/Escritorio/SO-Shell/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

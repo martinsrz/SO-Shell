@@ -862,9 +862,16 @@ void cmdDelrec(char *directory)
     }
     else
     {
-        if (remove(directory) != 0)
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
         {
-            perror("Error al eliminar el archivo");
+            // no hacemos nada cuando los archivos sean . o ..
+        }
+        else
+        {
+            if (remove(directory) != 0)
+            {
+                perror("Error al eliminar el archivo");
+            }
         }
     }
 }
