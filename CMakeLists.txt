@@ -8,4 +8,6 @@ include_directories(.)
 add_executable(P0
         list.c
     list.h
-        p1.c)
+        p1.c
+        memoryList.c
+        memoryList.h)

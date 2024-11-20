@@ -1,4 +1,4 @@
-/snap/clion/296/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" -S /home/diego/CLionProjects/SO-Shell -B /home/diego/CLionProjects/SO-Shell/cmake-build-debug
+/snap/clion/296/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" -S /home/martinsrz/Escritorio/GEI/2do/3Q/SO/Practicas/SO-Shell -B /home/martinsrz/Escritorio/GEI/2do/3Q/SO/Practicas/SO-Shell/cmake-build-debug
 -- Configuring done (0.0s)
 -- Generating done (0.0s)
--- Build files have been written to: /home/diego/CLionProjects/SO-Shell/cmake-build-debug
+-- Build files have been written to: /home/martinsrz/Escritorio/GEI/2do/3Q/SO/Practicas/SO-Shell/cmake-build-debug

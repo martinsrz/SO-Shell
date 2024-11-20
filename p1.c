@@ -16,11 +16,12 @@
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include "list.h"
+#include "memoryList.h"
 
 void shellLoop(bool exit);
 void printPrompt();
 void readCommand(command *command, tList *commandList);
-void processCommand(command *cmnd, tList *commandList, tList *openFiles, bool *exit);
+void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM *memoryList, bool *exit);
 void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, char *param2);
 void cmdAuthors(char *param2);
 void cmdPid();
@@ -137,20 +138,23 @@ void shellLoop(bool exit)
 {
 	command entry;
     tList history, openFiles;
+    tListM memoryList;
 
     createEmptyList(&history);
     createEmptyList(&openFiles);
+    createEmptyListM(&memoryList);
     initOpenFiles(&openFiles);
 
     while (!exit)
     {
         printPrompt();
         readCommand(&entry, &history);
-        processCommand(&entry, &history, &openFiles, &exit);
+        processCommand(&entry, &history, &openFiles, &memoryList, &exit);
     }
 
     deleteList(&history);
     deleteList(&openFiles);
+    deleteListM(&memoryList);
 }
 
 void printPrompt()
@@ -175,7 +179,7 @@ void readCommand(command *command, tList *commandList)
     }
 }
 
-void processCommand(command *cmnd, tList *commandList, tList *openFiles, bool *exit)
+void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM *memoryList, bool *exit)
 {
     command aux;
     char *tr[COMMAND_LEN];
