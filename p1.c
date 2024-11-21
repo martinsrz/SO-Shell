@@ -17,6 +17,7 @@
 #include <sys/utsname.h>
 #include "list.h"
 #include "memoryList.h"
+#include "memory.h"
 
 #define MAX_LENGTH 256
 #define TAMANO 2048
@@ -45,6 +46,8 @@ void cmdReclist(char *param2, int *cmdMode);
 void cmdRevlist(char *param2, int *cmdMode);
 void cmdErase(char *param2);
 void cmdDelrec(char *directory);
+void cmdAllocate(char *param2, tListM *memoryList);
+void cmdMemory(char *param2);
 void cmdRecurse(char *param2);
 void cmdHelp(char *param2);
 void initOpenFiles(tList *openFiles);
@@ -136,16 +139,6 @@ char *convierteModo (mode_t m)
     if (m&S_ISVTX) permisos[9]='t';
 
     return permisos;
-}
-
-void Recursiva(int n)
-{
-    char automatico[TAMANO];
-    static char estatico[TAMANO];
-
-    printf ("parametro:%3d(%p) array %p, arr estatico %p\n",n,&n,automatico, estatico);
-
-    if (n>0) Recursiva(n-1);
 }
 
 void shellLoop(bool exit)
@@ -284,6 +277,10 @@ void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, ch
     else if (strcmp(param1, "delrec") == 0)
     {
         cmdDelrec(param2);
+    }
+    else if (strcmp(param1, "memory") == 0)
+    {
+        cmdMemory(param2);
     }
     else if (strcmp(param1, "recurse") == 0)
     {
@@ -1170,6 +1167,50 @@ void cmdDelrec(char *directory)
             perror("Error al eliminar el archivo");
         }
     }
+}
+
+void cmdAllocate(char *param2, tListM *memoryList)
+{
+    if (param2 == NULL) {
+        //cmdMemory blocks
+        return;
+    }
+}
+
+void cmdMemory(char *param2)
+{
+    char *tr[COMMAND_LEN];
+    int args = trocearCadena(param2, tr);
+
+    if (args == 0)
+    {
+        cmdMemory("-all");
+        return;
+    }
+
+    if (strcmp(tr[0], "-funcs") == 0)
+    {
+        MemoryFuncs();
+    }
+    else if (strcmp(tr[0], "-vars") == 0)
+    {
+        // vars
+    }
+    else if (strcmp(tr[0], "-blocks") == 0)
+    {
+        // blocks
+    }
+    else if (strcmp(tr[0], "-all") == 0)
+    {
+        // all
+        printf("Imprime todas\n");
+    }
+    else if (strcmp(tr[0], "-pmap") == 0)
+    {
+        Do_pmap();
+    }
+    else return;
+
 }
 
 void cmdRecurse(char *param2)
