@@ -3,7 +3,7 @@
 
 #include "memoryList.h"
 
-bool createNode(tPosM *p)
+bool createNodeM(tPosM *p)
 {
     *p = malloc(sizeof(struct tNodeM));
 
@@ -19,7 +19,7 @@ bool insertItemM(tItemM d, tPosM p, tListM *L)
 {
   	tPosM q, r;
 
- 	if (!createNode(&q)) {
+ 	if (!createNodeM(&q)) {
       	return false;
   	} else {
   	    q->data = d;

@@ -18,6 +18,9 @@
 #include "list.h"
 #include "memoryList.h"
 
+#define MAX_LENGTH 256
+#define TAMANO 2048
+
 void shellLoop(bool exit);
 void printPrompt();
 void readCommand(command *command, tList *commandList);
@@ -42,6 +45,7 @@ void cmdReclist(char *param2, int *cmdMode);
 void cmdRevlist(char *param2, int *cmdMode);
 void cmdErase(char *param2);
 void cmdDelrec(char *directory);
+void cmdRecurse(char *param2);
 void cmdHelp(char *param2);
 void initOpenFiles(tList *openFiles);
 void printOpenFiles(tList openFiles);
@@ -132,6 +136,16 @@ char *convierteModo (mode_t m)
     if (m&S_ISVTX) permisos[9]='t';
 
     return permisos;
+}
+
+void Recursiva(int n)
+{
+    char automatico[TAMANO];
+    static char estatico[TAMANO];
+
+    printf ("parametro:%3d(%p) array %p, arr estatico %p\n",n,&n,automatico, estatico);
+
+    if (n>0) Recursiva(n-1);
 }
 
 void shellLoop(bool exit)
@@ -270,6 +284,10 @@ void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, ch
     else if (strcmp(param1, "delrec") == 0)
     {
         cmdDelrec(param2);
+    }
+    else if (strcmp(param1, "recurse") == 0)
+    {
+        cmdRecurse(param2);
     }
     else if (strcmp(param1, "help") == 0)
     {
@@ -1039,8 +1057,6 @@ void cmdRevlist(char *param2, int *cmdMode)
     closedir(dir);
 }
 
-
-
 bool isEmptyDir(const char *directory)
 {
     struct dirent *entry;
@@ -1154,6 +1170,14 @@ void cmdDelrec(char *directory)
             perror("Error al eliminar el archivo");
         }
     }
+}
+
+void cmdRecurse(char *param2)
+{
+    if (param2 == NULL) return;
+
+    int n = atoi(param2);
+    Recursiva(n);
 }
 
 void cmdHelp(char *param2)
