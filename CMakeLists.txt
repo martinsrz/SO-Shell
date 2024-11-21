@@ -10,4 +10,6 @@ add_executable(P0
     list.h
         p1.c
         memoryList.c
-        memoryList.h)
+        memoryList.h
+        memory.c
+        memory.h)

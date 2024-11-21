@@ -15,11 +15,10 @@ typedef char command[COMMAND_LEN];
 typedef struct tNodeM *tPosM;
 
 typedef struct tItemM {
-    void *memoryAdress;
-    int size;
+    void *memoryAddress;
+    size_t size;
     struct tm *time;
     command mode;
-    char type;
     int key;
     int fd;
     command name;

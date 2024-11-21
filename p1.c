@@ -26,13 +26,13 @@ void shellLoop(bool exit);
 void printPrompt();
 void readCommand(command *command, tList *commandList);
 void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM *memoryList, bool *exit);
-void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, char *param2);
+void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *param1, char *param2);
 void cmdAuthors(char *param2);
 void cmdPid();
 void cmdPpid();
 void cmdCd();
 void cmdDate(char *param2);
-void cmdHistoric(char *param2, tList historic, tList *openFiles, bool *exit);
+void cmdHistoric(char *param2, tList historic, tList *openFiles, tListM *memoryList, bool *exit);
 void cmdOpen(char *param2, tList *openFiles);
 void cmdClose(char *param2, tList *openFiles);
 void cmdDup();
@@ -46,8 +46,8 @@ void cmdReclist(char *param2, int *cmdMode);
 void cmdRevlist(char *param2, int *cmdMode);
 void cmdErase(char *param2);
 void cmdDelrec(char *directory);
-void cmdAllocate(char *param2, tListM *memoryList);
-void cmdMemory(char *param2);
+void cmdAllocate(char *param2, tListM *memoryList, tList *openFiles);
+void cmdMemory(char *param2, tListM memoryList);
 void cmdRecurse(char *param2);
 void cmdHelp(char *param2);
 void initOpenFiles(tList *openFiles);
@@ -195,10 +195,10 @@ void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM 
 
     if (parameters == 0) return;
 
-    commands(commandList, openFiles, exit, tr[0], tr[1]);
+    commands(commandList, openFiles, memoryList, exit, tr[0], tr[1]);
 }
 
-void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, char *param2)
+void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *param1, char *param2)
 {
     if (strcmp(param1, "authors") == 0)
     {
@@ -222,7 +222,7 @@ void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, ch
     }
     else if (strcmp(param1, "historic") == 0)
     {
-        cmdHistoric(param2, *commandList, openFiles, exit); //hacer
+        cmdHistoric(param2, *commandList, openFiles, memoryList, exit); //hacer
     }
     else if (strcmp(param1, "open") == 0)
     {
@@ -278,9 +278,13 @@ void commands(tList *commandList, tList *openFiles, bool *exit, char *param1, ch
     {
         cmdDelrec(param2);
     }
+    else if (strcmp(param1, "allocate") == 0)
+    {
+        cmdAllocate(param2, memoryList, openFiles);
+    }
     else if (strcmp(param1, "memory") == 0)
     {
-        cmdMemory(param2);
+        cmdMemory(param2, *memoryList);
     }
     else if (strcmp(param1, "recurse") == 0)
     {
@@ -361,7 +365,7 @@ void cmdDate(char *param2)
     else printf("Comando no reconocido\n");
 }
 
-void cmdHistoric(char *param2, tList historic, tList *openFiles, bool *exit)
+void cmdHistoric(char *param2, tList historic, tList *openFiles, tListM *memoryList, bool *exit)
 {
     if (param2 == NULL)
     {
@@ -400,7 +404,7 @@ void cmdHistoric(char *param2, tList historic, tList *openFiles, bool *exit)
             printf("Ejecutando hist (%d): %s\n", n, aux);
 
             trocearCadena(aux, tr);
-            commands(&historic, openFiles, exit, tr[0], tr[1]);
+            commands(&historic, openFiles, memoryList, exit, tr[0], tr[1]);
         }
 
     }
@@ -460,7 +464,7 @@ void cmdOpen(char *param2, tList *openFiles)
         }
     }
 
-    if ((df = open(param2, mode, 0777)) == -1 || countList(*openFiles) == 10)
+    if ((df = open(param2, mode, 0777)) == -1 || countList(*openFiles) == 20)
     {
         perror("Imposible abrir fichero");
     }
@@ -1169,22 +1173,58 @@ void cmdDelrec(char *directory)
     }
 }
 
-void cmdAllocate(char *param2, tListM *memoryList)
-{
-    if (param2 == NULL) {
-        //cmdMemory blocks
-        return;
-    }
-}
-
-void cmdMemory(char *param2)
+void cmdAllocate(char *param2, tListM *memoryList, tList *openFiles)
 {
     char *tr[COMMAND_LEN];
     int args = trocearCadena(param2, tr);
 
     if (args == 0)
     {
-        cmdMemory("-all");
+        MemoryBlocks("", *memoryList);
+        return;
+    }
+
+    if (strcmp(tr[0], "-malloc") == 0)
+    {
+        if (args != 2) {
+            MemoryBlocks("malloc", *memoryList);
+            return;
+        }
+
+        size_t size = strtoul(tr[1], NULL, 10);
+        do_AllocateMalloc(size, memoryList);
+    }
+    else if (strcmp(tr[0], "-mmap") == 0)
+    {
+        if (args != 3) {
+            MemoryBlocks("mmap", *memoryList);
+            return;
+        }
+
+        do_AllocateMmap(tr[1], tr[2], memoryList, openFiles);
+    }
+    else if (strcmp(tr[0], "-createshared") == 0)
+    {
+
+    }
+    else if (strcmp(tr[0], "-shared") == 0)
+    {
+
+    }
+    else
+    {
+        cmdMemory("-blocks", *memoryList);
+    }
+}
+
+void cmdMemory(char *param2, tListM memoryList)
+{
+    char *tr[COMMAND_LEN];
+    int args = trocearCadena(param2, tr);
+
+    if (args == 0)
+    {
+        cmdMemory("-all", memoryList);
         return;
     }
 
@@ -1194,23 +1234,23 @@ void cmdMemory(char *param2)
     }
     else if (strcmp(tr[0], "-vars") == 0)
     {
-        // vars
+        MemoryVars();
     }
     else if (strcmp(tr[0], "-blocks") == 0)
     {
-        // blocks
+        MemoryBlocks("", memoryList);
     }
     else if (strcmp(tr[0], "-all") == 0)
     {
-        // all
-        printf("Imprime todas\n");
+        MemoryVars();
+        MemoryFuncs();
+        MemoryBlocks("", memoryList);
     }
     else if (strcmp(tr[0], "-pmap") == 0)
     {
         Do_pmap();
     }
     else return;
-
 }
 
 void cmdRecurse(char *param2)
@@ -1368,28 +1408,35 @@ void printOpenFiles(tList openFiles)
         {
             d = getItem(p, openFiles);
 
-            if ((offset = lseek(d.fileDescriptor, 0, SEEK_CUR)) == -1)
+            if (d.fileDescriptor == i)
             {
-                printf("  )-> ");
+                if ((offset = lseek(d.fileDescriptor, 0, SEEK_CUR)) == -1)
+                {
+                    printf("  )-> ");
+                }
+                else
+                {
+                    printf("%ld)-> ", offset);
+                }
+
+                printf("%s ", d.command); // Mostrar el nombre del archivo
+
+                if (d.mode == O_CREAT) printf("O_CREAT ");
+                if (d.mode == O_EXCL) printf("O_EXCL ");
+                if (d.mode == O_RDONLY) printf("O_RDONLY ");
+                if (d.mode == O_WRONLY) printf("O_WRONLY ");
+                if (d.mode == O_RDWR) printf("O_RDWR ");
+                if (d.mode == O_APPEND) printf("O_APPEND ");
+                if (d.mode == O_TRUNC) printf("O_TRUNC ");
+
+                printf("\n");
+
+                p = next(p, openFiles);
             }
             else
             {
-                printf("%ld)-> ", offset);
+                printf("  )-> no usado\n");
             }
-
-            printf("%s ", d.command); // Mostrar el nombre del archivo
-
-            if (d.mode == O_CREAT) printf("O_CREAT ");
-            if (d.mode == O_EXCL) printf("O_EXCL ");
-            if (d.mode == O_RDONLY) printf("O_RDONLY ");
-            if (d.mode == O_WRONLY) printf("O_WRONLY ");
-            if (d.mode == O_RDWR) printf("O_RDWR ");
-            if (d.mode == O_APPEND) printf("O_APPEND ");
-            if (d.mode == O_TRUNC) printf("O_TRUNC ");
-
-            printf("\n");
-
-            p = next(p, openFiles);
         }
         else
         {

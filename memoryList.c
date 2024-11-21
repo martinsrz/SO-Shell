@@ -85,8 +85,12 @@ bool isEmptyListM(tListM L)
 tPosM findItemM(command d, tListM L)
 {
     tPosM p;
-    for (p = L; (p != LNULL) && (strcmp(p->data.memoryAdress, d) != 0); p = p->next);
-    return p;
+    for (p = L; (p != LNULL) && (strcmp(p->data.memoryAddress, d) != 0); p = p->next);
+	if (p != NULL &&
+		(strcmp(p->data.memoryAddress, d) == 0))
+		return p;
+	else
+		return NULL;
 }
 
 tPosM findPositionM(int n, tListM L)
