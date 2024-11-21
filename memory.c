@@ -43,6 +43,46 @@ void *MapearFichero(char *fichero, int protection, tListM *memoryList, tList *op
     return p;
 }
 
+void *ObtenerMemoriaShmget (key_t clave, size_t tam, tListM *memoryList)
+{
+    void *p;
+    int aux,id,flags=0777;
+    struct shmid_ds s;
+    tItemM item;
+
+    if (tam)     /*tam distito de 0 indica crear */
+        flags=flags | IPC_CREAT | IPC_EXCL; /*cuando no es crear pasamos de tamano 0*/
+    if (clave==IPC_PRIVATE)  /*no nos vale*/
+    {
+        errno=EINVAL; return NULL;
+    }
+    if ((id = shmget(clave, tam, flags)) == -1)
+        return (NULL);
+    if ((p = shmat(id, NULL,0)) == (void*) -1)
+    {
+        aux = errno;
+        if (tam)
+            shmctl(id,IPC_RMID, NULL);
+        errno = aux;
+        return (NULL);
+    }
+    shmctl (id,IPC_STAT, &s); /* si no es crear, necesitamos el tamano, que es s.shm_segsz*/
+
+    /* Guardar en la lista   InsertarNodoShared (&L, p, s.shm_segsz, clave); */
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
+    item.memoryAddress = p;
+    item.size = s.shm_segsz;
+    item.time = tm;
+    strcpy(item.mode, "shared");
+    item.key = clave;
+    item.fd = -1;
+    strcpy(item.name, "");
+    insertItemM(item, LNULL, memoryList);
+
+    return (p);
+}
+
 void do_AllocateMalloc(size_t size, tListM *memoryList)
 {
     tItemM item;
@@ -85,6 +125,38 @@ void do_AllocateMmap(char *file, char *perms, tListM *memoryList, tList *openFil
         perror ("Imposible mapear fichero");
     else
         printf ("fichero %s mapeado en %p\n", file, p);
+}
+
+void do_AllocateCreateshared (char *clv, char *n, tListM *memoryList)
+{
+    key_t cl;
+    size_t tam;
+    void *p;
+
+    cl = (key_t)  strtoul(clv, NULL,10);
+    tam = (size_t) strtoul(n, NULL,10);
+    if (tam == 0) {
+        printf ("No se asignan bloques de 0 bytes\n");
+        return;
+    }
+    if ((p = ObtenerMemoriaShmget(cl, tam, memoryList)) != NULL)
+        printf ("Asignados %lu bytes en %p\n",(unsigned long) tam, p);
+    else
+        printf ("Imposible asignar memoria compartida clave %lu: %s\n", (unsigned long) cl, strerror(errno));
+}
+
+void do_AllocateShared(char *clv, tListM *memoryList)
+{
+    key_t cl;
+    size_t tam;
+    void *p;
+
+    cl = (key_t)  strtoul(clv, NULL,10);
+
+    if ((p=ObtenerMemoriaShmget(cl, 0, memoryList)) != NULL)
+        printf ("Asignada memoria compartida de clave %lu en %p\n",(unsigned long) cl, p);
+    else
+        printf ("Imposible asignar memoria compartida clave %lu:%s\n",(unsigned long) cl,strerror(errno));
 }
 
 void Recursiva (int n)
@@ -159,6 +231,10 @@ void MemoryBlocks(char *type, tListM memoryList)    // si type es "" imprime tod
                 {
                     printf("\t%p %16zu %s %s  (descriptor %d)\n", item.memoryAddress, item.size, fecha, item.name, item.fd);
                 }
+                else if (strcmp(item.mode, "shared") == 0)
+                {
+                    printf("\t%p %16zu %s %s (key %d)\n", item.memoryAddress, item.size, fecha, item.mode, item.key);
+                }
                 else
                 {
                     printf("\t%p %16zu %s %s\n", item.memoryAddress, item.size, fecha, item.mode);
@@ -169,6 +245,10 @@ void MemoryBlocks(char *type, tListM memoryList)    // si type es "" imprime tod
                 if (strcmp(item.mode, "mmap") == 0)
                 {
                     printf("\t%p %16zu %s %s  (descriptor %d)\n", item.memoryAddress, item.size, fecha, item.name, item.fd);
+                }
+                else if (strcmp(item.mode, "shared") == 0)
+                {
+                    printf("\t%p %16zu %s %s (key %d)\n", item.memoryAddress, item.size, fecha, item.mode, item.key);
                 }
                 else
                 {

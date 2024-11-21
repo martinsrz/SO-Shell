@@ -1205,11 +1205,21 @@ void cmdAllocate(char *param2, tListM *memoryList, tList *openFiles)
     }
     else if (strcmp(tr[0], "-createshared") == 0)
     {
+        if (tr[1] == NULL || tr[2] == NULL) {
+            MemoryBlocks("shared", *memoryList);
+            return;
+        }
 
+        do_AllocateCreateshared(tr[1], tr[2], memoryList);
     }
     else if (strcmp(tr[0], "-shared") == 0)
     {
+        if (tr[1] == NULL) {
+            MemoryBlocks("shared", *memoryList);
+            return;
+        }
 
+        do_AllocateShared(tr[1], memoryList);
     }
     else
     {

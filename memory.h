@@ -20,8 +20,11 @@
 #define TAMANO 2048
 
 void *MapearFichero(char *fichero, int protection, tListM *memoryList, tList *openFiles);
+void *ObtenerMemoriaShmget (key_t clave, size_t tam, tListM *memoryList);
 void do_AllocateMalloc(size_t size, tListM *memoryList);
 void do_AllocateMmap(char *file, char *perms, tListM *memoryList, tList *openFiles);
+void do_AllocateCreateshared (char *cl, char *n, tListM *memoryList);
+void do_AllocateShared(char *clv, tListM *memoryList);
 void Recursiva (int n);
 void MemoryFuncs();
 void MemoryVars();
