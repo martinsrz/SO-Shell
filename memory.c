@@ -159,6 +159,52 @@ void do_AllocateShared(char *clv, tListM *memoryList)
         printf ("Imposible asignar memoria compartida clave %lu:%s\n",(unsigned long) cl,strerror(errno));
 }
 
+void do_DeallocateMalloc(size_t size, tListM *memoryList)
+{
+    if (!isEmptyListM(*memoryList))
+    {
+        tPosM pos;
+
+        pos = firstM(*memoryList);
+
+        while (pos != NULL)
+        {
+            tItemM item = getItemM(pos, *memoryList);
+
+            if (item.size == size && strcmp(item.mode, "malloc") == 0)
+            {
+                free(item.memoryAddress);
+
+                deleteAtPositionM(pos, memoryList);
+
+                return;
+            }
+
+            pos = nextM(pos, *memoryList);
+        }
+
+        printf("No hay bloque de ese tamano asignado con malloc\n");
+    }
+    else printf("No hay bloque de ese tamano asignado con malloc\n");
+}
+
+void do_DeallocateDelkey (char *key)
+{
+    key_t clave;
+    int id;
+
+    if (key == NULL || (clave=(key_t) strtoul(key,NULL,10))==IPC_PRIVATE){
+        printf ("      delkey necesita clave_valida\n");
+        return;
+    }
+    if ((id=shmget(clave,0,0666))==-1){
+        perror ("shmget: imposible obtener memoria compartida");
+        return;
+    }
+    if (shmctl(id,IPC_RMID,NULL)==-1)
+        perror ("shmctl: imposible eliminar memoria compartida\n");
+}
+
 void Recursiva (int n)
 {
     char automatico[TAMANO];
@@ -211,11 +257,7 @@ void MemoryBlocks(char *type, tListM memoryList)    // si type es "" imprime tod
 
     printf("******Lista de bloques asignados %s para el proceso %d\n", type, pid);
 
-    if (isEmptyListM(memoryList))
-    {
-        return;
-    }
-    else
+    if (!isEmptyListM(memoryList))
     {
         char fecha[20];
         pos = firstM(memoryList);

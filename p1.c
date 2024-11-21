@@ -47,6 +47,7 @@ void cmdRevlist(char *param2, int *cmdMode);
 void cmdErase(char *param2);
 void cmdDelrec(char *directory);
 void cmdAllocate(char *param2, tListM *memoryList, tList *openFiles);
+void cmdDeallocate(char *param2, tListM *memoryList, tList *openFiles);
 void cmdMemory(char *param2, tListM memoryList);
 void cmdRecurse(char *param2);
 void cmdHelp(char *param2);
@@ -281,6 +282,10 @@ void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *ex
     else if (strcmp(param1, "allocate") == 0)
     {
         cmdAllocate(param2, memoryList, openFiles);
+    }
+    else if (strcmp(param1, "deallocate") == 0)
+    {
+        cmdDeallocate(param2, memoryList, openFiles);
     }
     else if (strcmp(param1, "memory") == 0)
     {
@@ -1220,6 +1225,55 @@ void cmdAllocate(char *param2, tListM *memoryList, tList *openFiles)
         }
 
         do_AllocateShared(tr[1], memoryList);
+    }
+    else
+    {
+        cmdMemory("-blocks", *memoryList);
+    }
+}
+
+void cmdDeallocate(char *param2, tListM *memoryList, tList *openFiles)
+{
+    char *tr[COMMAND_LEN];
+    int args = trocearCadena(param2, tr);
+
+    if (args == 0)
+    {
+        MemoryBlocks("", *memoryList);
+        return;
+    }
+
+    if (strcmp(tr[0], "-malloc") == 0)
+    {
+        if (args != 2) {
+            MemoryBlocks("malloc", *memoryList);
+            return;
+        }
+
+        size_t size = strtoul(tr[1], NULL, 10);
+        do_DeallocateMalloc(size, memoryList);
+    }
+    else if (strcmp(tr[0], "-mmap") == 0)
+    {
+        if (args != 3) {
+            MemoryBlocks("mmap", *memoryList);
+            return;
+        }
+
+        do_AllocateMmap(tr[1], tr[2], memoryList, openFiles);
+    }
+    else if (strcmp(tr[0], "-createshared") == 0)
+    {
+        if (tr[1] == NULL || tr[2] == NULL) {
+            MemoryBlocks("shared", *memoryList);
+            return;
+        }
+
+        do_AllocateCreateshared(tr[1], tr[2], memoryList);
+    }
+    else if (strcmp(tr[0], "-delkey") == 0)
+    {
+        do_DeallocateDelkey(tr[1]);
     }
     else
     {
