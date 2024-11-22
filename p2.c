@@ -1342,28 +1342,21 @@ void cmdMemory(char *param2, tListM memoryList)
     {
         Do_pmap();
     }
-    else return;
 }
 
 void cmdReadFile(char *param2)
 {
     char *trozos[COMMAND_LEN];
-    int args = trocearCadena(param2, trozos);
+    trocearCadena(param2, trozos);
 
-    if (args == 0)
-    {
-        printf ("faltan parametros\n");
+    if (trozos[0] == NULL ||  trozos[1]==NULL) {
+        printf("Parametros incorrectos\n");
         return;
     }
 
     void *p;
     size_t cont=-1;  /*si no pasamos tamano se lee entero */
     ssize_t n;
-
-    if (trozos[0] == NULL ||  trozos[1]==NULL) {
-        printf ("faltan parametros\n");
-        return;
-    }
 
     p = cadtop(trozos[1]);
 
@@ -1373,23 +1366,17 @@ void cmdReadFile(char *param2)
     if ((n = LeerFichero(trozos[0], p, cont)) == -1)
         perror ("Imposible leer fichero");
     else
-        printf ("leidos %lld bytes de %s en %p\n",(long long) n, trozos[0], p);
+        printf ("Leidos %lld bytes de %s en %p\n",(long long) n, trozos[0], p);
 
 }
 
 void cmdWriteFile(char *param2)
 {
     char *tr[COMMAND_LEN];
-    int args = trocearCadena(param2, tr);
-
-    if (args == 0)
-    {
-        printf ("faltan parametros\n");
-        return;
-    }
+    trocearCadena(param2, tr);
 
     if (tr[0] == NULL ||  tr[1] == NULL || tr[2] == NULL) {
-        printf ("faltan parametros\n");
+        printf("Parametros incorrectos\n");
         return;
     }
 
@@ -1413,7 +1400,7 @@ void cmdWriteFile(char *param2)
         return;
     }
 
-    printf("escritos %lld bytes en %s desde %p\n", (long long) n, tr[0], p);
+    printf("Escritos %lld bytes en %s desde %p\n", (long long) n, tr[0], p);
 }
 
 void cmdRead(char *param2)
@@ -1422,20 +1409,17 @@ void cmdRead(char *param2)
     trocearCadena(param2, tr);
 
     void *p;
-    size_t cont = -1;  // Si no se pasa el tamaño, se lee tdo el archivo
+    size_t cont;
     ssize_t n;
 
-    if (tr[0] == NULL || tr[1] == NULL) {
-        printf("faltan parametros\n");
+    if (tr[0] == NULL || tr[1] == NULL || tr[2] == NULL) {
+        printf("Parametros incorrectos\n");
         return;
     }
 
     int df = atoi(tr[0]);
     p = cadtop(tr[1]);
-
-    if (tr[2] != NULL) {
-        cont = strtoul(tr[2], NULL, 10);
-    }
+    cont = strtoul(tr[2], NULL, 10);
 
     // Llamar a LeerDf para leer del descriptor
     n = LeerDf(df, p, cont);
@@ -1446,43 +1430,31 @@ void cmdRead(char *param2)
     }
 }
 
-void cmdWrite(char *param2) {
-    // int over = -1;
-    // size_t size;
-    // void *mem;
-    // char f[100];
-    // unsigned long direccion_num;
-    // char **tr = (char **)param2;
-    //
-    // if(tr[0]==NULL || tr[0][1]=='\0'){
-    //     perror("Missing arguments");
-    //     return;
-    // }
-    // if(strcmp(tr[0],"-o")==0) over = 1;
-    // if(over==1){
-    //     if(tr[3]==NULL || tr[3][0]=='\0' || tr[2]==NULL || tr[2][0]=='\0' || tr[1]==NULL || tr[1][0]=='\0'){
-    //         perror("Missing arguments.");
-    //         return;
-    //     }
-    //     sprintf(f,"%s",tr[1]);
-    //     direccion_num = strtoul(tr[2], NULL, 16);
-    //     size = (ssize_t)strtoul(tr[3], NULL, 10);
-    // } else {
-    //     if(tr[3]==NULL || tr[2][0]=='\0' || tr[1]==NULL || tr[1][0]=='\0'){
-    //         perror("Missing arguments.");
-    //         return;
-    //     }
-    //     sprintf(f,"%s",tr[0]);
-    //     direccion_num = strtoul(tr[1], NULL, 16);
-    //     size = (size_t)strtoul(tr[2], NULL, 10);
-    // }
-    // mem = (void *)direccion_num;
-    // printf("Trying to write %zu bytes from direction %p on file %s...\n",size,mem,f);
-    // if(EscribirFichero(f,mem,size,over)==-1){
-    //     perror("Error writing file.");
-    //     return;
-    // }
-    printf("Successfully wrote.\n");
+void cmdWrite(char *param2)
+{
+    char *tr[COMMAND_LEN];
+    trocearCadena(param2, tr);
+
+    void *p;
+    size_t cont;
+    ssize_t n;
+
+    if (tr[0] == NULL || tr[1] == NULL || tr[2] == NULL) {
+        printf("Parametros incorrectos\n");
+        return;
+    }
+
+    int df = atoi(tr[0]);
+    p = cadtop(tr[1]);
+    cont = strtoul(tr[2], NULL, 10);
+
+    // Llamar a LeerDf para leer del descriptor
+    n = EscribirDf(df, p, cont);
+    if (n == -1) {
+        printf("Error al escribir en el descriptor %d desde la direccion %p\n", df, p);
+    } else {
+        printf("Escritos %lld bytes en el descriptor %d desde la direccion %p\n", (long long)n, df, p);
+    }
 }
 
 void cmdRecurse(char *param2)

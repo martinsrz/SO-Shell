@@ -137,28 +137,8 @@ ssize_t LeerDf(int fd, void *p, size_t cont)
 
     // Si el descriptor no es válido
     if (fd < 0) {
-        errno = EBADF;  // Error de descriptor de archivo inválido
+        errno = EBADF;  // Descriptor de archivo inválido
         return -1;
-    }
-
-    // Si cont es -1, obtenemos el tamaño disponible en el archivo (opcional)
-    if (cont == (size_t)-1) {
-        off_t current_offset = lseek(fd, 0, SEEK_CUR);
-        if (current_offset == (off_t)-1) {
-            return -1;  // Error al obtener el offset actual
-        }
-
-        off_t end_offset = lseek(fd, 0, SEEK_END);
-        if (end_offset == (off_t)-1) {
-            return -1;  // Error al mover el offset al final
-        }
-
-        cont = end_offset - current_offset;
-
-        // Restauramos el offset original
-        if (lseek(fd, current_offset, SEEK_SET) == (off_t)-1) {
-            return -1;  // Error al restaurar el offset original
-        }
     }
 
     // Leer cont bytes del descriptor y escribir en *p
@@ -169,6 +149,26 @@ ssize_t LeerDf(int fd, void *p, size_t cont)
 
     return n;  // Retornamos la cantidad de bytes leídos
 }
+
+ssize_t EscribirDf(int fd, void *p, size_t cont)
+{
+    ssize_t n;
+
+    // Si el descriptor no es válido
+    if (fd < 0) {
+        errno = EBADF;  // Descriptor de archivo inválido
+        return -1;
+    }
+
+    // Intentamos escribir directamente cont bytes
+    n = write(fd, p, cont);
+    if (n == -1) {
+        return -1;  // Ocurre algun error
+    }
+
+    return n;  // Retornamos la cantidad de bytes escritos
+}
+
 
 void do_AllocateMalloc(size_t size, tListM *memoryList)
 {
