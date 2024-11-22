@@ -26,7 +26,10 @@ void do_AllocateMmap(char *file, char *perms, tListM *memoryList, tList *openFil
 void do_AllocateCreateshared (char *cl, char *n, tListM *memoryList);
 void do_AllocateShared(char *clv, tListM *memoryList);
 void do_DeallocateMalloc(size_t size, tListM *memoryList);
+void do_DeallocateMmap(char *file, tListM *memoryList, tList *openFiles);
+void do_DeallocateShared(char *clv, tListM *memoryList);
 void do_DeallocateDelkey (char *key);
+void do_Deallocate(char *address, tListM *memoryList, tList *openFiles);
 void Recursiva (int n);
 void MemoryFuncs();
 void MemoryVars();

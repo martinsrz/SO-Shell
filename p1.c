@@ -450,10 +450,6 @@ void cmdOpen(char *param2, tList *openFiles)
         return;
     }
 
-    if (tr[1] == NULL)
-    {
-        mode = O_RDONLY;
-    }
     if (tr[1] != NULL)
     {
         if (strcmp(tr[1], "cr") == 0) mode = O_CREAT;
@@ -478,6 +474,8 @@ void cmdOpen(char *param2, tList *openFiles)
         file.fileDescriptor = df;
         strcpy(file.command, param2);
         file.mode = mode;
+        file.dup = false;
+        file.mmap = false;
 
         insertItem(file, LNULL, openFiles);
 
@@ -537,9 +535,19 @@ void cmdDup(char *param2, tList *openFiles)
     }
 
     duplicado.mode = p->data.mode;
+    duplicado.mmap = p->data.mmap;
+    duplicado.dup = true;
 
     strcpy(aux, p->data.command);
-    sprintf (duplicado.command, "duplicado de %d (%s)", df, aux);
+
+    if (duplicado.mmap)
+    {
+        sprintf (duplicado.command, "duplicado de %d (Mapeo de %s)", df, aux);
+    }
+    else
+    {
+        sprintf (duplicado.command, "duplicado de %d (%s)", df, aux);
+    }
 
     if (duplicado.fileDescriptor != (-1))
     {
@@ -1255,21 +1263,21 @@ void cmdDeallocate(char *param2, tListM *memoryList, tList *openFiles)
     }
     else if (strcmp(tr[0], "-mmap") == 0)
     {
-        if (args != 3) {
+        if (args != 2) {
             MemoryBlocks("mmap", *memoryList);
             return;
         }
 
-        do_AllocateMmap(tr[1], tr[2], memoryList, openFiles);
+        do_DeallocateMmap(tr[1], memoryList, openFiles);
     }
-    else if (strcmp(tr[0], "-createshared") == 0)
+    else if (strcmp(tr[0], "-shared") == 0)
     {
-        if (tr[1] == NULL || tr[2] == NULL) {
+        if (args != 2) {
             MemoryBlocks("shared", *memoryList);
             return;
         }
 
-        do_AllocateCreateshared(tr[1], tr[2], memoryList);
+        do_DeallocateShared(tr[1], memoryList);
     }
     else if (strcmp(tr[0], "-delkey") == 0)
     {
@@ -1277,7 +1285,7 @@ void cmdDeallocate(char *param2, tListM *memoryList, tList *openFiles)
     }
     else
     {
-        cmdMemory("-blocks", *memoryList);
+        do_Deallocate(tr[0], memoryList, openFiles);
     }
 }
 
@@ -1483,7 +1491,14 @@ void printOpenFiles(tList openFiles)
                     printf("%ld)-> ", offset);
                 }
 
-                printf("%s ", d.command); // Mostrar el nombre del archivo
+                if (d.mmap && !d.dup)
+                {
+                    printf ("Mapeo de %s ", d.command);
+                }
+                else
+                {
+                    printf("%s ", d.command);
+                }
 
                 if (d.mode == O_CREAT) printf("O_CREAT ");
                 if (d.mode == O_EXCL) printf("O_EXCL ");

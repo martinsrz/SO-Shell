@@ -18,6 +18,8 @@ typedef struct tItem {
     command command;
     int fileDescriptor;
     int mode;
+    bool dup;
+    bool mmap;
 } tItem;
 
 typedef struct tNode {

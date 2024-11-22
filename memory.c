@@ -5,6 +5,13 @@
 
 int *vg1, *vg2, *vg3, *vg4, *vg5, *vg6;
 
+void *cadtop(char *str)
+{
+    unsigned long long int dir = strtoull(str, NULL, 16);
+    void *p = (void *)dir;
+    return p;
+}
+
 void *MapearFichero(char *fichero, int protection, tListM *memoryList, tList *openFiles)
 {
     int df, map = MAP_PRIVATE, modo = O_RDONLY;
@@ -38,6 +45,8 @@ void *MapearFichero(char *fichero, int protection, tListM *memoryList, tList *op
     file.fileDescriptor = df;
     strcpy(file.command, fichero);
     file.mode = modo;
+    file.dup = false;
+    file.mmap = true;
     insertItem(file, LNULL, openFiles);
 
     return p;
@@ -164,12 +173,13 @@ void do_DeallocateMalloc(size_t size, tListM *memoryList)
     if (!isEmptyListM(*memoryList))
     {
         tPosM pos;
+        tItemM item;
 
         pos = firstM(*memoryList);
 
         while (pos != NULL)
         {
-            tItemM item = getItemM(pos, *memoryList);
+            item = getItemM(pos, *memoryList);
 
             if (item.size == size && strcmp(item.mode, "malloc") == 0)
             {
@@ -188,6 +198,85 @@ void do_DeallocateMalloc(size_t size, tListM *memoryList)
     else printf("No hay bloque de ese tamano asignado con malloc\n");
 }
 
+void do_DeallocateMmap(char *file, tListM *memoryList, tList *openFiles)
+{
+    if (!isEmptyListM(*memoryList))
+    {
+        tPosM posM;
+        tPos pos;
+        tItemM itemM;
+
+        posM = firstM(*memoryList);
+
+        while (posM != LNULL)
+        {
+            itemM = getItemM(posM, *memoryList);
+            pos = findItem(itemM.name, *openFiles);
+
+            if (pos != LNULL && strcmp(itemM.name, file) == 0 && strcmp(itemM.mode, "mmap") == 0)
+            {
+                if (close(itemM.fd) == -1)
+                {
+                    perror("Imposible cerrar descriptor");
+                }
+                else
+                {
+                    if (munmap(itemM.memoryAddress, itemM.size) == -1)
+                    {
+                        perror("Error al desmapear el archivo");
+                        return;
+                    }
+
+                    deleteAtPosition(pos, openFiles);
+                    deleteAtPositionM(posM, memoryList);
+
+                    return;
+                }
+            }
+
+            posM = nextM(posM, *memoryList);
+        }
+        printf("Fichero %s no mapeado\n", file);
+    }
+    else printf("Fichero %s no mapeado\n", file);
+}
+
+void do_DeallocateShared(char *clv, tListM *memoryList)
+{
+    if (!isEmptyListM(*memoryList))
+    {
+        key_t cl;
+        tPosM pos;
+        tItemM item;
+
+        pos = firstM(*memoryList);
+        cl = (key_t)  strtoul(clv, NULL,10);
+
+        while (pos != NULL)
+        {
+            item = getItemM(pos, *memoryList);
+
+            if (item.key == cl && strcmp(item.mode, "shared") == 0)
+            {
+                if (shmdt(item.memoryAddress) == -1)
+                {
+                    perror("Error al desconectar memoria compartida");
+                    return;
+                }
+
+                deleteAtPositionM(pos, memoryList);
+
+                return;
+            }
+
+            pos = nextM(pos, *memoryList);
+        }
+
+        printf("No hay bloque de esa clave mapeado en el proceso\n");
+    }
+    else printf("No hay bloque de esa clave mapeado en el proceso\n");
+}
+
 void do_DeallocateDelkey (char *key)
 {
     key_t clave;
@@ -203,6 +292,55 @@ void do_DeallocateDelkey (char *key)
     }
     if (shmctl(id,IPC_RMID,NULL)==-1)
         perror ("shmctl: imposible eliminar memoria compartida\n");
+}
+
+void do_Deallocate(char *address, tListM *memoryList, tList *openFiles)
+{
+    void *adr;
+    adr = cadtop(address);
+
+    if (!isEmptyListM(*memoryList))
+    {
+        tPosM pos;
+        tItemM item;
+
+        pos = firstM(*memoryList);
+
+        while (pos != NULL)
+        {
+            item = getItemM(pos, *memoryList);
+
+            if (item.memoryAddress == adr)
+            {
+                if (strcmp (item.mode, "malloc") == 0)
+                {
+                    free(item.memoryAddress);
+                    deleteAtPositionM(pos, memoryList);
+                }
+                else if (strcmp (item.mode, "mmap") == 0)
+                {
+                    do_DeallocateMmap(item.name, memoryList, openFiles);
+                }
+                else if (strcmp (item.mode, "shared") == 0)
+                {
+                    char str[10];
+                    snprintf(str, 10, "%d", item.key);
+                    do_DeallocateShared(str, memoryList);
+                }
+                else
+                {
+                    printf("Direccion %p no asignada con malloc, shared o mmap\n", adr);
+                }
+
+                return;
+            }
+
+            pos = nextM(pos, *memoryList);
+        }
+
+        printf("Direccion %p no asignada con malloc, shared o mmap\n", adr);
+    }
+    else printf("Direccion %p no asignada con malloc, shared o mmap\n", adr);
 }
 
 void Recursiva (int n)
