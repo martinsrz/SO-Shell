@@ -19,8 +19,12 @@
 
 #define TAMANO 2048
 
+void *cadtop(char *str);
 void *MapearFichero(char *fichero, int protection, tListM *memoryList, tList *openFiles);
 void *ObtenerMemoriaShmget (key_t clave, size_t tam, tListM *memoryList);
+ssize_t LeerFichero (char *f, void *p, size_t cont);
+ssize_t EscribirFichero(char *f, void *p, size_t cont);
+ssize_t LeerDf(int df, void *p, size_t cont);
 void do_AllocateMalloc(size_t size, tListM *memoryList);
 void do_AllocateMmap(char *file, char *perms, tListM *memoryList, tList *openFiles);
 void do_AllocateCreateshared (char *cl, char *n, tListM *memoryList);

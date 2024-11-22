@@ -92,6 +92,84 @@ void *ObtenerMemoriaShmget (key_t clave, size_t tam, tListM *memoryList)
     return (p);
 }
 
+ssize_t LeerFichero (char *f, void *p, size_t cont)
+{
+    struct stat s;
+    ssize_t  n;
+    int df,aux;
+
+    if (stat (f,&s)==-1 || (df=open(f,O_RDONLY))==-1)
+        return -1;
+    if (cont==-1)   /* si pasamos -1 como bytes a leer lo leemos entero*/
+        cont=s.st_size;
+    if ((n=read(df,p,cont))==-1){
+        aux=errno;
+        close(df);
+        errno=aux;
+        return -1;
+    }
+    close (df);
+    return n;
+}
+
+ssize_t EscribirFichero (char *f, void *p, size_t cont)
+{
+    ssize_t  n;
+    int df, aux, flags = O_CREAT | O_EXCL | O_WRONLY;
+
+    if ((df=open(f,flags,0777))==-1)
+        return -1;
+
+    if ((n=write(df,p,cont))==-1){
+        aux=errno;
+        close(df);
+        errno=aux;
+        return -1;
+    }
+
+    close (df);
+    return n;
+}
+
+ssize_t LeerDf(int fd, void *p, size_t cont)
+{
+    ssize_t n;
+
+    // Si el descriptor no es válido
+    if (fd < 0) {
+        errno = EBADF;  // Error de descriptor de archivo inválido
+        return -1;
+    }
+
+    // Si cont es -1, obtenemos el tamaño disponible en el archivo (opcional)
+    if (cont == (size_t)-1) {
+        off_t current_offset = lseek(fd, 0, SEEK_CUR);
+        if (current_offset == (off_t)-1) {
+            return -1;  // Error al obtener el offset actual
+        }
+
+        off_t end_offset = lseek(fd, 0, SEEK_END);
+        if (end_offset == (off_t)-1) {
+            return -1;  // Error al mover el offset al final
+        }
+
+        cont = end_offset - current_offset;
+
+        // Restauramos el offset original
+        if (lseek(fd, current_offset, SEEK_SET) == (off_t)-1) {
+            return -1;  // Error al restaurar el offset original
+        }
+    }
+
+    // Leer cont bytes del descriptor y escribir en *p
+    n = read(fd, p, cont);
+    if (n == -1) {
+        return -1;  // Devolvemos el error si la lectura falla
+    }
+
+    return n;  // Retornamos la cantidad de bytes leídos
+}
+
 void do_AllocateMalloc(size_t size, tListM *memoryList)
 {
     tItemM item;
@@ -215,11 +293,7 @@ void do_DeallocateMmap(char *file, tListM *memoryList, tList *openFiles)
 
             if (pos != LNULL && strcmp(itemM.name, file) == 0 && strcmp(itemM.mode, "mmap") == 0)
             {
-                if (close(itemM.fd) == -1)
-                {
-                    perror("Imposible cerrar descriptor");
-                }
-                else
+                if (close(itemM.fd) != -1)
                 {
                     if (munmap(itemM.memoryAddress, itemM.size) == -1)
                     {

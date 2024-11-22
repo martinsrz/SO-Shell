@@ -122,7 +122,7 @@ CMAKE_PROJECT_DESCRIPTION:STATIC=
 CMAKE_PROJECT_HOMEPAGE_URL:STATIC=
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=P1
+CMAKE_PROJECT_NAME:STATIC=P2
 
 //Path to a program.
 CMAKE_RANLIB:FILEPATH=/usr/bin/ranlib
@@ -197,6 +197,15 @@ P1_IS_TOP_LEVEL:STATIC=ON
 
 //Value Computed by CMake
 P1_SOURCE_DIR:STATIC=/home/martinsrz/Escritorio/GEI/2do/3Q/SO/Practicas/SO-Shell
+
+//Value Computed by CMake
+P2_BINARY_DIR:STATIC=/home/martinsrz/Escritorio/GEI/2do/3Q/SO/Practicas/SO-Shell/cmake-build-debug
+
+//Value Computed by CMake
+P2_IS_TOP_LEVEL:STATIC=ON
+
+//Value Computed by CMake
+P2_SOURCE_DIR:STATIC=/home/martinsrz/Escritorio/GEI/2do/3Q/SO/Practicas/SO-Shell
 
 
 ########################
