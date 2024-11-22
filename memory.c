@@ -417,19 +417,18 @@ void do_Deallocate(char *address, tListM *memoryList, tList *openFiles)
     else printf("Direccion %p no asignada con malloc, shared o mmap\n", adr);
 }
 
-void Recursiva (int n)
+void LlenarMemoria(void *p, size_t cont, unsigned char byte)
 {
-    char automatico[TAMANO];
-    static char estatico[TAMANO];
+    unsigned char *arr=(unsigned char *) p;
+    size_t i;
 
-    printf ("parametro:%3d(%p) array %p, arr estatico %p\n",n,&n,automatico, estatico);
-
-    if (n>0) Recursiva(n-1);
+    for (i=0; i<cont;i++)
+        arr[i]=byte;
 }
 
 void MemoryFuncs()
 {
-    printf("Funciones programa\t%p,\t\t%p,\t\t%p\n", (void *)MemoryFuncs, (void *)Recursiva, (void *)Do_pmap);
+    printf("Funciones programa\t%p,\t\t%p,\t\t%p\n", (void *)MemoryFuncs, (void *)do_AllocateMalloc, (void *)do_Deallocate);
     printf("Funciones libreria\t%p,\t\t%p,\t\t%p\n", (void *)printf, (void *)malloc, (void *)exit);
 }
 
@@ -549,4 +548,14 @@ void Do_pmap () /*sin argumentos*/
     }
 
     waitpid (pid, NULL, 0);
- }
+}
+
+void Recursiva (int n)
+{
+    char automatico[TAMANO];
+    static char estatico[TAMANO];
+
+    printf ("parametro:%3d(%p) array %p, arr estatico %p\n",n,&n,automatico, estatico);
+
+    if (n>0) Recursiva(n-1);
+}

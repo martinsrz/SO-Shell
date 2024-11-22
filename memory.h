@@ -35,10 +35,11 @@ void do_DeallocateMmap(char *file, tListM *memoryList, tList *openFiles);
 void do_DeallocateShared(char *clv, tListM *memoryList);
 void do_DeallocateDelkey (char *key);
 void do_Deallocate(char *address, tListM *memoryList, tList *openFiles);
-void Recursiva (int n);
+void LlenarMemoria(void *p, size_t cont, unsigned char byte);
 void MemoryFuncs();
 void MemoryVars();
 void MemoryBlocks(char *type, tListM memoryList);
 void Do_pmap ();
+void Recursiva (int n);
 
 #endif

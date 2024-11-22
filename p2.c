@@ -22,6 +22,8 @@
 #define MAX_LENGTH 256
 #define TAMANO 2048
 
+char memory[244 * 1024];
+
 void shellLoop(bool exit);
 void printPrompt();
 void readCommand(command *command, tList *commandList);
@@ -48,6 +50,8 @@ void cmdErase(char *param2);
 void cmdDelrec(char *directory);
 void cmdAllocate(char *param2, tListM *memoryList, tList *openFiles);
 void cmdDeallocate(char *param2, tListM *memoryList, tList *openFiles);
+void cmdMemfill(char *param2);
+void cmdMemdump(char *param2);
 void cmdMemory(char *param2, tListM memoryList);
 void cmdReadFile(char *param2);
 void cmdWriteFile(char *param2);
@@ -61,6 +65,10 @@ void printOpenFiles(tList openFiles);
 int main()
 {
     bool exit = false;
+
+    for (int i = 0; i < (244 * 1024); i++) {
+        memory[i] = '\00';
+    }
 
     shellLoop(exit);
 
@@ -290,6 +298,14 @@ void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *ex
     else if (strcmp(param1, "deallocate") == 0)
     {
         cmdDeallocate(param2, memoryList, openFiles);
+    }
+    else if (strcmp(param1, "memfill") == 0)
+    {
+        cmdMemfill(param2);
+    }
+    else if (strcmp(param1, "memdump") == 0)
+    {
+        cmdMemdump(param2);
     }
     else if (strcmp(param1, "memory") == 0)
     {
@@ -1309,6 +1325,82 @@ void cmdDeallocate(char *param2, tListM *memoryList, tList *openFiles)
     }
 }
 
+void cmdMemfill(char *param2) {
+    char *tr[COMMAND_LEN];
+    int args = trocearCadena(param2, tr);
+
+    if (args == 0) return;
+
+    void *p;
+    size_t cont;
+    unsigned char byte;
+
+    p = cadtop(tr[0]);
+
+    if (tr[1] == NULL)
+    {
+        cont = (ssize_t) 128;
+        byte = (unsigned char) 'A';
+    }
+    else if (tr[2] == NULL)
+    {
+        cont = (ssize_t) atoll(tr[1]);
+        byte = (unsigned char) 'A';
+    }
+    else {
+        cont = (ssize_t) atoll(tr[1]);
+        byte = tr[2][0];
+    }
+
+    printf("Llenando %lld bytes de memoria con el byte %c(%02X) a partir de la direccion %p\n", (long long) cont, byte, byte, p);
+    LlenarMemoria(p, cont, byte);
+}
+
+void cmdMemdump(char *param2) {
+    char *tr[COMMAND_LEN];
+    trocearCadena(param2, tr);
+
+    if (tr[0] == NULL) return;
+
+    void *p = cadtop(tr[0]);
+    unsigned char *mem = p;
+
+    long long int n = 25;
+    if (tr[1] != NULL && tr[1][0] != '\0')
+    {
+        n = atoll(tr[1]);
+    }
+
+    printf("Volcando %lld bytes desde la direccion %p\n", n, p);
+
+    for (int i = 0; i < n; i++)
+    {
+        if (i % 25 == 0 && i != 0)
+        {
+            printf("\n");
+        }
+
+        if (isprint(mem[i]))
+        {
+            printf("%3c", mem[i]);
+        }
+        else
+        {
+            printf("    ");
+        }
+
+        if ((i + 1) % 25 == 0 || i == n - 1)
+        {
+            printf("\n");
+            for (int j = i - (i % 25); j <= i; j++)
+            {
+                printf(" %02X", mem[j]);
+            }
+        }
+    }
+    printf("\n");
+}
+
 void cmdMemory(char *param2, tListM memoryList)
 {
     char *tr[COMMAND_LEN];
@@ -1470,7 +1562,8 @@ void cmdHelp(char *param2)
     if (param2 == NULL)
     {
         printf("'help [cmd]' ayuda sobre comandos\n\t\t\t\tComandos disponibles:\nauthors pid ppid cd date historic open close dup infosys "
-               "makefile makedir listfile cwd listdir reclist revlist erase delrec help quit exit bye\n");
+               "makefile makedir listfile cwd listdir reclist revlist erase delrec allocate deallocate memfill memdump memory readfile writefile "
+               "read write recurse help quit exit bye\n");
     }
     else if (strcmp(param2, "authors") == 0)
     {
@@ -1551,6 +1644,55 @@ void cmdHelp(char *param2)
     else if (strcmp(param2, "delrec") == 0)
     {
         printf("delrec [name1 name2 ..]\tBorra ficheros o directorios no vacios recursivamente\n");
+    }
+    else if (strcmp(param2, "allocate") == 0)
+    {
+        printf("allocate [-malloc|-shared|-createshared|-mmap] ... Asigna un bloque de memoria"
+               "\n\t-malloc tam: asigna un bloque malloc de tamano tam\n\t-createshared cl tam: asigna (creando) el bloque "
+               "de memoria compartida de clave cl y tamano tam\n\t-shared cl: asigna el bloque de memoria compartida (ya existente)"
+               "de clave cl\n\t-mmap fich perm: mapea el fichero fich, perm son los permisos\n");
+    }
+    else if (strcmp(param2, "deallocate") == 0)
+    {
+        printf("deallocate [-malloc|-shared|-createshared|-mmap|addr] ... Desasigna un bloque de memoria"
+               "\n\t-malloc tam: desasigna un bloque malloc de tamano tam\n\t-shared cl: desasigna (desmapea) el bloque "
+               "de memoria compartida de clave cl\n\t-delkey cl: elimina del sistema (sin desmapear) la clave de memoria cl"
+               "\n\t-mmap fich: desmapea el fichero mapeado fich\n\taddr: desasigna el bloque de memoria en la direccion addr\n");
+    }
+    else if (strcmp(param2, "memfill") == 0)
+    {
+        printf("memfill addr cont byte\tLLena la memoria a partir de addr con byte\n");
+    }
+    else if (strcmp(param2, "memdump") == 0)
+    {
+        printf("memdump addr cont\tVuelva en pantalla los contenidos (cont bytes) de la posicion de memoria addr\n");
+    }
+    else if (strcmp(param2, "memory") == 0)
+    {
+        printf("memory [-blocks|-funcs|-vars|-all|-pmap] ... Muestra detalles de la memoria del proceso"
+               "\n\t-blocks: los bloques de memoria asignados\n\t-funcs: las direcciones de las funciones"
+               "\n\t-vars: las direcciones de las variables\n\t-all: todo"
+               "\n\t-pmap: muestra la salida del comando pmap (o similar)\n");
+    }
+    else if (strcmp(param2, "readfile") == 0)
+    {
+        printf("readfile fich addr cont\tLee cont bytes desde fich a la direccion addr\n");
+    }
+    else if (strcmp(param2, "writefile") == 0)
+    {
+        printf("writefile [-o] fich addr cont\tEscribe cont bytes desde la direccion addr a fich (-o sobreescribe)\n");
+    }
+    else if (strcmp(param2, "read") == 0)
+    {
+        printf("read df addr cont\tTransfiere cont bytes del fichero descrito por df a la direccion addr\n");
+    }
+    else if (strcmp(param2, "write") == 0)
+    {
+        printf("write df addr cont\tTransfiere cont bytes desde la direccion addr al fichero descrito por df\n");
+    }
+    else if (strcmp(param2, "recurse") == 0)
+    {
+        printf("recurse [-n]\tInvoca a la funcion recursiva n veces\n");
     }
     else if (strcmp(param2, "help") == 0)
     {
