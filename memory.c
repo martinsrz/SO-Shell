@@ -112,22 +112,28 @@ ssize_t LeerFichero (char *f, void *p, size_t cont)
     return n;
 }
 
-ssize_t EscribirFichero (char *f, void *p, size_t cont)
+ssize_t EscribirFichero(char *f, void *p, size_t cont, int overwrite)
 {
-    ssize_t  n;
-    int df, aux, flags = O_CREAT | O_EXCL | O_WRONLY;
+    ssize_t n;
+    int df, aux;
+    int flags = O_CREAT | O_WRONLY;
 
-    if ((df=open(f,flags,0777))==-1)
+    // Si no es para sobrescribir, añadir bandera O_EXCL
+    if (!overwrite) {
+        flags |= O_EXCL;
+    }
+
+    if ((df = open(f, flags, 0777)) == -1)
         return -1;
 
-    if ((n=write(df,p,cont))==-1){
-        aux=errno;
+    if ((n = write(df, p, cont)) == -1) {
+        aux = errno;
         close(df);
-        errno=aux;
+        errno = aux;
         return -1;
     }
 
-    close (df);
+    close(df);
     return n;
 }
 

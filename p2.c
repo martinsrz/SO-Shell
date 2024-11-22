@@ -1467,7 +1467,7 @@ void cmdWriteFile(char *param2)
     char *tr[COMMAND_LEN];
     trocearCadena(param2, tr);
 
-    if (tr[0] == NULL ||  tr[1] == NULL || tr[2] == NULL) {
+    if (tr[0] == NULL || tr[1] == NULL || tr[2] == NULL) {
         printf("Parametros incorrectos\n");
         return;
     }
@@ -1477,22 +1477,41 @@ void cmdWriteFile(char *param2)
     ssize_t n;
     struct stat file_stat;
 
-    if (stat(tr[0], &file_stat) == 0) {
+    int overwrite = 0;
+    int arg_offset = 0;
+
+    if (strcmp(tr[0], "-o") == 0) {
+        overwrite = 1;
+        arg_offset = 1; // Ajustar el índice de los argumentos
+    }
+
+    if (tr[arg_offset] == NULL || tr[arg_offset + 1] == NULL || tr[arg_offset + 2] == NULL) {
+        printf("Parametros incorrectos\n");
+        return;
+    }
+
+    // Ajustar los argumentos según el desplazamiento
+    char *filename = tr[arg_offset];
+    char *addr = tr[arg_offset + 1];
+    char *bytescount = tr[arg_offset + 2];
+
+    // Si no es la opción -o y el archivo ya existe, devolver error
+    if (!overwrite && stat(filename, &file_stat) == 0) {
         printf("Imposible escribir fichero: File exists\n");
         return;
     }
 
-    p = cadtop(tr[1]);
-    cont = strtoul(tr[2], NULL, 10);
+    p = cadtop(addr);
+    cont = strtoul(bytescount, NULL, 10);
 
-    n = EscribirFichero(tr[0], p, cont);
+    n = EscribirFichero(filename, p, cont, overwrite);
 
     if (n == -1) {
-        perror ("Imposible escribir fichero");
+        perror("Imposible escribir fichero");
         return;
     }
 
-    printf("Escritos %lld bytes en %s desde %p\n", (long long) n, tr[0], p);
+    printf("Escritos %lld bytes en %s desde %p\n", (long long)n, filename, p);
 }
 
 void cmdRead(char *param2)

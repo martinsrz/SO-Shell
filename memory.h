@@ -23,7 +23,7 @@ void *cadtop(char *str);
 void *MapearFichero(char *fichero, int protection, tListM *memoryList, tList *openFiles);
 void *ObtenerMemoriaShmget (key_t clave, size_t tam, tListM *memoryList);
 ssize_t LeerFichero (char *f, void *p, size_t cont);
-ssize_t EscribirFichero(char *f, void *p, size_t cont);
+ssize_t EscribirFichero(char *f, void *p, size_t cont, int overwrite);
 ssize_t LeerDf(int df, void *p, size_t cont);
 ssize_t EscribirDf(int fd, void *p, size_t cont);
 void do_AllocateMalloc(size_t size, tListM *memoryList);
