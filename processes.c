@@ -4,6 +4,8 @@
 #include "list.h"
 #include <stdio.h>
 
+extern char **environ;
+
 char *userName(uid_t uid)
 {
     struct passwd *d;
@@ -53,12 +55,35 @@ void uidSetUsername(char *username)
         perror("Imposible cambiar credencial");
 }
 
-void Cmd_fork()
+void environArg3(char *arg3[])
+{
+    for(int i = 0; arg3[i] != NULL; i++)
+    {
+        printf("%p->%s[%d]=(%p) %s\n", arg3[i], "main arg3", i, &arg3[i], arg3[i]);
+    }
+}
+
+void environEnv()
+{
+    for (int i = 0; environ[i] != NULL; i++)
+    {
+        printf("%p->%s[%d]=(%p) %s\n", environ[i], "environ", i, &environ[i], environ[i]);
+    }
+}
+
+void environAddr(char *arg3[])
+{
+    printf("environ: %p (almacenado en %p)\n", environ, &environ);
+    printf("main arg3: %p (almacenado en %p)\n", arg3, &arg3);
+}
+
+void Cmd_fork(tListP *processesList)
 {
     pid_t pid;
 
-    if ((pid=fork())==0){
-        /*		VaciarListaProcesos(&LP); Depende de la implementaciÃ³n de cada uno*/
+    if ((pid=fork())==0)
+    {
+        deleteListP(processesList);
         printf ("ejecutando proceso %d\n", getpid());
     }
     else if (pid!=-1)

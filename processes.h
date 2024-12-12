@@ -16,15 +16,19 @@
 #include <errno.h>
 #include <sys/shm.h>
 #include <sys/resource.h>
+#include "processesList.h"
 #include "directoriesList.h"
 #include "list.h"
 
 #define MAXVAR 2048
 
-void Cmd_fork();
+void Cmd_fork(tListP *processesList);
 void getUid();
 void uidSetId(char *id);
 void uidSetUsername(char *username);
+void environArg3(char *arg3[]);
+void environEnv();
+void environAddr(char *arg3[]);
 int BuscarVariable(char *var, char *e[]);
 int CambiarVariable(char * var, char * valor, char *e[]);
 char *Ejecutable(char *s, tListD directoriesList);
