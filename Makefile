@@ -1,4 +1,4 @@
-shell.out: p2.c list.o memoryList.o memory.o
+shell.out: p3.c list.o memoryList.o memory.o
 
 	gcc -g -Wall -o shell.out p2.c list.o memoryList.o memory.o
 

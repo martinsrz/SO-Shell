@@ -73,6 +73,7 @@ void deleteListM(tListM *L)
 	{
 		p = *L;
 		*L = p->next;
+		free(p->data.memoryAddress);
 		free(p);
 	}
 }

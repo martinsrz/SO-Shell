@@ -1741,6 +1741,8 @@ void initOpenFiles(tList *openFiles)
     strcpy(d.command, "entrada estandar");
     flags = fcntl(d.fileDescriptor, F_GETFL);
     d.mode = 0;
+    d.dup = false;
+    d.mmap = false;
     d.mode = flags & O_ACCMODE;
     insertItem(d, LNULL, openFiles);
 
@@ -1748,6 +1750,8 @@ void initOpenFiles(tList *openFiles)
     strcpy(d.command, "salida estandar");
     flags = fcntl(d.fileDescriptor, F_GETFL);
     d.mode = 0;
+    d.dup = false;
+    d.mmap = false;
     d.mode = flags & O_ACCMODE;
     insertItem(d, LNULL, openFiles);
 
@@ -1755,6 +1759,8 @@ void initOpenFiles(tList *openFiles)
     strcpy(d.command, "error estandar");
     flags = fcntl(d.fileDescriptor, F_GETFL);
     d.mode = 0;
+    d.dup = false;
+    d.mmap = false;
     d.mode = flags & O_ACCMODE;
     insertItem(d, LNULL, openFiles);
 }
