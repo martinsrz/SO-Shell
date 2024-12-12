@@ -30,4 +30,3 @@ valgrind:
 
 	gcc -g -O0 -Wall -o shell.out p3.c list.o memoryList.o memory.o processesList.o processes.o directoriesList.o 
 	valgrind -s --leak-check=full --show-reachable=yes ./shell.out
-

@@ -4,12 +4,12 @@
 #include "list.h"
 #include <stdio.h>
 
-char *userName(__uid_t uid)
+char *userName(uid_t uid)
 {
     struct passwd *d;
 
     if ((d = getpwuid(uid)) == NULL)
-        perror("No se puede obtener el username");
+        return "??????";
 
     return d->pw_name;
 }
@@ -28,7 +28,8 @@ void uidSetId(char *id)
         return;
     }
 
-    if (setuid((uid_t)(atoi(id))))
+    uid_t uid = (uid_t) atoi(id);
+    if (seteuid(uid) == -1)
         perror("Imposible cambiar credencial");
 }
 
@@ -48,7 +49,7 @@ void uidSetUsername(char *username)
         return;
     }
 
-    if (setuid(d->pw_uid) == -1)
+    if (seteuid(d->pw_uid) == -1)
         perror("Imposible cambiar credencial");
 }
 
