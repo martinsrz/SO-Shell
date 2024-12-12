@@ -1,4 +1,5 @@
 #include "processes.h"
+#include "memoryList.h"
 #include "processesList.h"
 #include "directoriesList.h"
 #include "list.h"
@@ -55,11 +56,90 @@ void uidSetUsername(char *username)
         perror("Imposible cambiar credencial");
 }
 
+void printArg3(char *var, char *arg3[])
+{
+    int i = BuscarVariable(var, arg3);
+
+    if (i != -1)
+    {
+        printf("Con arg3 main %s(%p) @%p\n", arg3[i], arg3[i], &arg3[i]);
+    }
+}
+
+void printEnv(char *var)
+{
+    int i = BuscarVariable(var, environ);
+
+    if (i != -1)
+    {
+        printf("  Con environ %s(%p) @%p\n", environ[i], environ[i], &environ[i]);
+    }
+}
+
+void printGetenv(char *var)
+{
+    char *env = getenv(var);
+
+    if (env != NULL)
+    {
+        printf("   Con getenv %s(%p)\n", env, env);
+    }
+}
+
+void changevar(char *tr0, char *tr1, char *tr2, char *arg3[], tListM *envList)
+{
+    if (strcmp(tr0, "-a") == 0)
+    {
+        if (CambiarVariable(tr1, tr2, arg3, envList) == -1)
+            perror("Imposible cambiar variable de entorno");
+        return;
+    }
+    if (strcmp(tr0, "-e") == 0)
+    {
+        if (CambiarVariable(tr1, tr2, environ, envList) == -1)
+            perror("Imposible cambiar variable de entorno");
+        return;
+    }
+    if (strcmp(tr0, "-p") == 0)
+    {
+        tItemM var;
+
+        char *newvar;
+        if ((newvar = (char *)malloc(strlen(tr1) + strlen(tr2) + 2)) == NULL) return;
+
+        var.memoryAddress = newvar;
+        insertItemM(var, NULL, envList);
+
+        strcpy(newvar, tr1);
+        strcat(newvar, "=");
+        strcat(newvar, tr2);
+        strcat(newvar, "\0");
+
+        if (putenv(newvar) == -1)
+            perror("Imposible cambiar variable de entorno");
+    }
+}
+
+void subsvar(char *tr0, char *tr1, char *tr2, char *tr3, char *arg3[], tListM *envList)
+{
+    if (strcmp(tr0, "-a") == 0)
+    {
+        if (SustituirVariable(tr1, tr2, tr3, arg3, envList) == -1)
+            perror("Imposible sustituir variable de entorno");
+        return;
+    }
+    if (strcmp(tr0, "-e") == 0)
+    {
+        if (SustituirVariable(tr1, tr2, tr3, environ, envList) == -1)
+            perror("Imposible sustituir variable de entorno");
+    }
+}
+
 void environArg3(char *arg3[])
 {
     for(int i = 0; arg3[i] != NULL; i++)
     {
-        printf("%p->%s[%d]=(%p) %s\n", arg3[i], "main arg3", i, &arg3[i], arg3[i]);
+        printf("%p->%s[%d]=(%p) %s\n", &arg3[i], "main arg3", i, arg3[i], arg3[i]);
     }
 }
 
@@ -67,7 +147,7 @@ void environEnv()
 {
     for (int i = 0; environ[i] != NULL; i++)
     {
-        printf("%p->%s[%d]=(%p) %s\n", environ[i], "environ", i, &environ[i], environ[i]);
+        printf("%p->%s[%d]=(%p) %s\n", &environ[i], "environ", i, environ[i], environ[i]);
     }
 }
 
@@ -110,17 +190,44 @@ int BuscarVariable(char *var, char *e[])  /*busca una variable en el entorno que
     return(-1);
 }
 
-int CambiarVariable(char * var, char * valor, char *e[]) /*cambia una variable en el entorno que se le pasa como parÃ¡metro*/
+int CambiarVariable(char * var, char * valor, char *e[], tListM *envList) /*cambia una variable en el entorno que se le pasa como parÃ¡metro*/
 {                                                        /*lo hace directamente, no usa putenv*/
     int pos;
     char *aux;
+    tItemM v;
 
     if ((pos=BuscarVariable(var,e))==-1)
         return(-1);
 
     if ((aux=(char *)malloc(strlen(var)+strlen(valor)+2))==NULL)
         return -1;
+
+    v.memoryAddress = aux;
+    insertItemM(v, NULL, envList);
+
     strcpy(aux,var);
+    strcat(aux,"=");
+    strcat(aux,valor);
+    e[pos]=aux;
+    return (pos);
+}
+
+int SustituirVariable(char * var, char * var2, char * valor, char *e[], tListM *envList)
+{
+    int pos;
+    char *aux;
+    tItemM v;
+
+    if ((pos=BuscarVariable(var,e))==-1)
+        return(-1);
+
+    if ((aux=(char *)malloc(strlen(var)+strlen(valor)+2))==NULL)
+        return -1;
+
+    v.memoryAddress = aux;
+    insertItemM(v, NULL, envList);
+
+    strcpy(aux,var2);
     strcat(aux,"=");
     strcat(aux,valor);
     e[pos]=aux;
