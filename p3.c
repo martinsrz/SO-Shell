@@ -18,23 +18,26 @@
 #include "list.h"
 #include "memoryList.h"
 #include "memory.h"
+#include "processesList.h"
+#include "processes.h"
+#include "directoriesList.h"
 
 #define MAX_LENGTH 256
 #define TAMANO 2048
 
 char memory[244 * 1024];
 
-void shellLoop(bool exit);
+void shellLoop(bool exit, char *env[]);
 void printPrompt();
 void readCommand(command *command, tList *commandList);
-void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM *memoryList, bool *exit);
-void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *param1, char *param2);
+void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *env[], tListP *processesList);
+void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *param1, char *param2, char *env[], tListP *processesList);
 void cmdAuthors(char *param2);
 void cmdPid();
 void cmdPpid();
 void cmdCd();
 void cmdDate(char *param2);
-void cmdHistoric(char *param2, tList historic, tList *openFiles, tListM *memoryList, bool *exit);
+void cmdHistoric(char *param2, tList historic, tList *openFiles, tListM *memoryList, bool *exit, char *env[], tListP *processesList);
 void cmdOpen(char *param2, tList *openFiles);
 void cmdClose(char *param2, tList *openFiles);
 void cmdDup();
@@ -58,11 +61,14 @@ void cmdWriteFile(char *param2);
 void cmdRead(char *param2);
 void cmdWrite(char *param2);
 void cmdRecurse(char *param2);
+void cmdGetuid();
+void cmdSetuid(char *param2);
+void cmdFork();
 void cmdHelp(char *param2);
 void initOpenFiles(tList *openFiles);
 void printOpenFiles(tList openFiles);
 
-int main()
+int main(int argc, char *argv[], char *env[])
 {
     bool exit = false;
 
@@ -70,7 +76,7 @@ int main()
         memory[i] = '\00';
     }
 
-    shellLoop(exit);
+    shellLoop(exit, env);
 
     return 0;
 }
@@ -154,22 +160,24 @@ char *convierteModo (mode_t m)
     return permisos;
 }
 
-void shellLoop(bool exit)
+void shellLoop(bool exit, char *env[])
 {
 	command entry;
     tList history, openFiles;
     tListM memoryList;
+    tListP processesList;
 
     createEmptyList(&history);
     createEmptyList(&openFiles);
     createEmptyListM(&memoryList);
+    createEmptyListP(&processesList);
     initOpenFiles(&openFiles);
 
     while (!exit)
     {
         printPrompt();
         readCommand(&entry, &history);
-        processCommand(&entry, &history, &openFiles, &memoryList, &exit);
+        processCommand(&entry, &history, &openFiles, &memoryList, &exit, env, &processesList);
     }
 
     deleteList(&history);
@@ -199,7 +207,7 @@ void readCommand(command *command, tList *commandList)
     }
 }
 
-void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM *memoryList, bool *exit)
+void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *env[], tListP *processesList)
 {
     command aux;
     char *tr[COMMAND_LEN];
@@ -208,10 +216,10 @@ void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM 
 
     if (parameters == 0) return;
 
-    commands(commandList, openFiles, memoryList, exit, tr[0], tr[1]);
+    commands(commandList, openFiles, memoryList, exit, tr[0], tr[1], env, processesList);
 }
 
-void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *param1, char *param2)
+void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *param1, char *param2, char *env[], tListP *processesList)
 {
     if (strcmp(param1, "authors") == 0)
     {
@@ -235,7 +243,7 @@ void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *ex
     }
     else if (strcmp(param1, "historic") == 0)
     {
-        cmdHistoric(param2, *commandList, openFiles, memoryList, exit); //hacer
+        cmdHistoric(param2, *commandList, openFiles, memoryList, exit, env, processesList); //hacer
     }
     else if (strcmp(param1, "open") == 0)
     {
@@ -331,6 +339,18 @@ void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *ex
     {
         cmdRecurse(param2);
     }
+    else if (strcmp(param1, "getuid") == 0)
+    {
+        cmdGetuid();
+    }
+    else if (strcmp(param1, "setuid") == 0)
+    {
+        cmdSetuid(param2);
+    }
+    else if (strcmp(param1, "fork") == 0)
+    {
+        cmdFork();
+    }
     else if (strcmp(param1, "help") == 0)
     {
         cmdHelp(param2);
@@ -406,7 +426,7 @@ void cmdDate(char *param2)
     else printf("Comando no reconocido\n");
 }
 
-void cmdHistoric(char *param2, tList historic, tList *openFiles, tListM *memoryList, bool *exit)
+void cmdHistoric(char *param2, tList historic, tList *openFiles, tListM *memoryList, bool *exit, char *env[], tListP *processesList)
 {
     if (param2 == NULL)
     {
@@ -445,7 +465,7 @@ void cmdHistoric(char *param2, tList historic, tList *openFiles, tListM *memoryL
             printf("Ejecutando hist (%d): %s\n", n, aux);
 
             trocearCadena(aux, tr);
-            commands(&historic, openFiles, memoryList, exit, tr[0], tr[1]);
+            commands(&historic, openFiles, memoryList, exit, tr[0], tr[1], env, processesList);
         }
 
     }
@@ -1574,6 +1594,33 @@ void cmdRecurse(char *param2)
 
     int n = atoi(param2);
     Recursiva(n);
+}
+
+void cmdGetuid()
+{
+    getUid();
+}
+
+void cmdSetuid(char *param2)
+{
+    char *tr[COMMAND_LEN];
+    trocearCadena(param2, tr);
+
+    if (param2 == NULL)
+    {
+        getUid();
+        return;
+    }
+
+    if (strcmp(tr[0], "-l") == 0)
+        uidSetUsername(tr[1]);
+    else
+        uidSetId(tr[0]);
+}
+
+void cmdFork(char *param2)
+{
+    Cmd_fork();
 }
 
 void cmdHelp(char *param2)

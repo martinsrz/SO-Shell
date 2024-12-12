@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+#define MAXNAME 256
 #define COMMAND_LEN 256
 #define LNULL NULL
 typedef char command[COMMAND_LEN];

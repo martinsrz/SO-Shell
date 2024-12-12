@@ -11,5 +11,11 @@ add_executable(P3
         p3.c
         memoryList.c
         memoryList.h
+        processesList.c
+        processesList.h
+        directoriesList.c
+        directoriesList.h
         memory.c
-        memory.h)
+        memory.h
+        processes.c
+        processes.h)
