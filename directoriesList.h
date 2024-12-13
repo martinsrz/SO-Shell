@@ -10,12 +10,11 @@
 
 #define COMMAND_LEN 256
 #define LNULL NULL
-typedef char command[COMMAND_LEN];
 
 typedef struct tNodeD *tPosD;
 
 typedef struct tItemD {
-    command directory;
+    char *directory;
 } tItemD;
 
 typedef struct tNodeD {
@@ -37,7 +36,7 @@ void deleteListD(tListD *L);
 
 bool isEmptyListD(tListD L);
 
-tPosD findItemD(command d, tListD L);
+tPosD findItemD(char *c, tListD L);
 
 tPosD findPositionD(int n, tListD L);
 

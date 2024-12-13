@@ -2,8 +2,10 @@
 #define PROCESSES_H
 
 #include <pwd.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <signal.h>
 #include <string.h>
 #include <fcntl.h>
 #include <time.h>
@@ -23,7 +25,13 @@
 
 #define MAXVAR 2048
 
-void Cmd_fork(tListP *processesList);
+struct SEN {
+    char *nombre;
+    int senal;
+};
+
+int ValorSenal(char * sen);
+char *NombreSenal(int sen);
 void getUid();
 void uidSetId(char *id);
 void uidSetUsername(char *username);
@@ -35,6 +43,12 @@ void subsvar(char *tr0, char *tr1, char *tr2, char *tr3, char *arg3[], tListM *e
 void environArg3(char *arg3[]);
 void environEnv();
 void environAddr(char *arg3[]);
+void Cmd_fork(tListP *processesList);
+void showSearchDirectories(tListD processesList);
+void searchAddDir(char *dir, tListD *directoriesList);
+void searchDelDir(char *dir, tListD *directoriesList);
+void searchPath(tListD *directoriesL);
+void exec(char *tr[], int nArgs, tListD directoriesList, tListM *envList);
 int BuscarVariable(char *var, char *e[]);
 int CambiarVariable(char * var, char * valor, char *e[], tListM *envList);
 int SustituirVariable(char * var, char * var2, char * valor, char *e[], tListM *envList);

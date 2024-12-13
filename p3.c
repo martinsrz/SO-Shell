@@ -30,14 +30,17 @@ char memory[244 * 1024];
 void shellLoop(bool exit, char *arg3[]);
 void printPrompt();
 void readCommand(command *command, tList *commandList);
-void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *arg3[], tListP *processesList, tListM *envList);
-void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *param1, char *param2, char *arg3[], tListP *processesList, tListM *envList);
+void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM *memoryList, bool *exit,
+    char *arg3[], tListP *processesList, tListD *directoriesList, tListM *envList);
+void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *param1, char *param2,
+    char *arg3[], tListP *processesList, tListD *directoriesList, tListM *envList);
 void cmdAuthors(char *param2);
 void cmdPid();
 void cmdPpid();
 void cmdCd();
 void cmdDate(char *param2);
-void cmdHistoric(char *param2, tList historic, tList *openFiles, tListM *memoryList, bool *exit, char *arg3[], tListP *processesList, tListM *envList);
+void cmdHistoric(char *param2, tList historic, tList *openFiles, tListM *memoryList, bool *exit, char *arg3[],
+    tListP *processesList, tListD *directoriesList, tListM *envList);
 void cmdOpen(char *param2, tList *openFiles);
 void cmdClose(char *param2, tList *openFiles);
 void cmdDup();
@@ -68,6 +71,9 @@ void cmdChangevar(char *param2, char *arg3[], tListM *envList);
 void cmdSubsvar(char *param2, char *arg3[], tListM *envList);
 void cmdEnviron(char *param2, char *arg3[]);
 void cmdFork(tListP *processesList);
+void cmdSearch(char *param2, tListD *directoriesList);
+void cmdExec(char *param2, tListD directoriesList, tListM *envList);
+void cmdFg(char *param2, tListD directoriesList, tListM *envList);
 void cmdHelp(char *param2);
 void initOpenFiles(tList *openFiles);
 void printOpenFiles(tList openFiles);
@@ -171,25 +177,28 @@ void shellLoop(bool exit, char *arg3[])
     tListM envList;
     tListM memoryList;
     tListP processesList;
+    tListD directoriesList;
 
     createEmptyList(&history);
     createEmptyList(&openFiles);
     createEmptyListM(&envList);
     createEmptyListM(&memoryList);
     createEmptyListP(&processesList);
+    createEmptyListD(&directoriesList);
     initOpenFiles(&openFiles);
 
     while (!exit)
     {
         printPrompt();
         readCommand(&entry, &history);
-        processCommand(&entry, &history, &openFiles, &memoryList, &exit, arg3, &processesList, &envList);
+        processCommand(&entry, &history, &openFiles, &memoryList, &exit, arg3, &processesList, &directoriesList, &envList);
     }
 
     deleteList(&history);
     deleteList(&openFiles);
     deleteListM(&envList);
     deleteListM(&memoryList);
+    deleteListD(&directoriesList);
 }
 
 void printPrompt()
@@ -214,7 +223,8 @@ void readCommand(command *command, tList *commandList)
     }
 }
 
-void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *arg3[], tListP *processesList, tListM *envList)
+void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM *memoryList, bool *exit,
+    char *arg3[], tListP *processesList, tListD *directoriesList, tListM *envList)
 {
     command aux;
     char *tr[COMMAND_LEN];
@@ -223,10 +233,11 @@ void processCommand(command *cmnd, tList *commandList, tList *openFiles, tListM 
 
     if (parameters == 0) return;
 
-    commands(commandList, openFiles, memoryList, exit, tr[0], tr[1], arg3, processesList, envList);
+    commands(commandList, openFiles, memoryList, exit, tr[0], tr[1], arg3, processesList, directoriesList, envList);
 }
 
-void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *param1, char *param2, char *arg3[], tListP *processesList, tListM *envList)
+void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *exit, char *param1, char *param2,
+    char *arg3[], tListP *processesList, tListD *directoriesList, tListM *envList)
 {
     if (strcmp(param1, "authors") == 0)
     {
@@ -250,7 +261,7 @@ void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *ex
     }
     else if (strcmp(param1, "historic") == 0)
     {
-        cmdHistoric(param2, *commandList, openFiles, memoryList, exit, arg3, processesList, envList); //hacer
+        cmdHistoric(param2, *commandList, openFiles, memoryList, exit, arg3, processesList, directoriesList, envList); //hacer
     }
     else if (strcmp(param1, "open") == 0)
     {
@@ -374,6 +385,18 @@ void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *ex
     {
         cmdFork(processesList);
     }
+    else if (strcmp(param1, "search") == 0)
+    {
+        cmdSearch(param2, directoriesList);
+    }
+    else if (strcmp(param1, "exec") == 0)
+    {
+        cmdExec(param2, *directoriesList, envList);
+    }
+    else if (strcmp(param1, "fg") == 0)
+    {
+        cmdFg(param2, *directoriesList, envList);
+    }
     else if (strcmp(param1, "help") == 0)
     {
         cmdHelp(param2);
@@ -449,7 +472,8 @@ void cmdDate(char *param2)
     else printf("Comando no reconocido\n");
 }
 
-void cmdHistoric(char *param2, tList historic, tList *openFiles, tListM *memoryList, bool *exit, char *arg3[], tListP *processesList, tListM *envList)
+void cmdHistoric(char *param2, tList historic, tList *openFiles, tListM *memoryList, bool *exit,
+    char *arg3[], tListP *processesList, tListD *directoriesList, tListM *envList)
 {
     if (param2 == NULL)
     {
@@ -488,7 +512,8 @@ void cmdHistoric(char *param2, tList historic, tList *openFiles, tListM *memoryL
             printf("Ejecutando hist (%d): %s\n", n, aux);
 
             trocearCadena(aux, tr);
-            commands(&historic, openFiles, memoryList, exit, tr[0], tr[1], arg3, processesList, envList);
+            commands(&historic, openFiles, memoryList, exit, tr[0], tr[1], arg3,
+                processesList, directoriesList, envList);
         }
 
     }
@@ -1712,6 +1737,51 @@ void cmdEnviron(char *param2, char *arg3[])
 void cmdFork(tListP *processesList)
 {
     Cmd_fork(processesList);
+}
+
+void cmdSearch(char *param2, tListD *directoriesList)
+{
+    char *tr[COMMAND_LEN];
+    trocearCadena(param2, tr);
+
+    if (param2 == NULL)
+    {
+        showSearchDirectories(*directoriesList);
+        return;
+    }
+
+    if (strcmp(tr[0], "-add") == 0)
+    {
+        searchAddDir(tr[1], directoriesList);
+        return;
+    }
+
+    if (strcmp(tr[0], "-del") == 0)
+    {
+        searchDelDir(tr[1], directoriesList);
+        return;
+    }
+
+    if (strcmp(tr[0], "-clear") == 0)
+    {
+        deleteListD(directoriesList);
+        return;
+    }
+
+    if (strcmp(tr[0], "-path") == 0)
+    {
+        searchPath(directoriesList);
+    }
+}
+
+void cmdExec(char *param2, tListD directoriesList, tListM *envList)
+{
+    char *tr[COMMAND_LEN];
+    int nArgs = trocearCadena(param2, tr);
+
+    if (param2 == NULL) return;
+
+    exec(tr, nArgs, directoriesList, envList);
 }
 
 void cmdHelp(char *param2)

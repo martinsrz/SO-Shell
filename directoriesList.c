@@ -51,6 +51,8 @@ void deleteAtPositionD(tPosD p, tListD *L)
 {
   	tPosD q;
 
+	free(p->data.directory);
+
   	if (p == *L) {
   		*L = p->next;
   	} else if (p->next == LNULL) {
@@ -62,6 +64,7 @@ void deleteAtPositionD(tPosD p, tListD *L)
         p->next = q->next;
         p = q;
     }
+
     free(p);
 }
 
@@ -73,6 +76,7 @@ void deleteListD(tListD *L)
 	{
 		p = *L;
 		*L = p->next;
+		free(p->data.directory);
 		free(p);
 	}
 }
@@ -82,12 +86,12 @@ bool isEmptyListD(tListD L)
   return (L == LNULL);
 }
 
-tPosD findItemD(command d, tListD L)
+tPosD findItemD(char *c, tListD L)
 {
 	tPosD p;
-	for (p = L; (p != LNULL) && (strcmp(p->data.directory, d) != 0); p = p->next);
+	for (p = L; (p != LNULL) && (strcmp(p->data.directory, c) != 0); p = p->next);
 	if (p != NULL &&
-		(strcmp(p->data.directory, d) == 0))
+		(strcmp(p->data.directory, c) == 0))
 		return p;
 	else
 		return NULL;
