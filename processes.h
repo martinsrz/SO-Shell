@@ -49,11 +49,14 @@ void searchAddDir(char *dir, tListD *directoriesList);
 void searchDelDir(char *dir, tListD *directoriesList);
 void searchPath(tListD *directoriesL);
 void exec(char *tr[], int nArgs, tListD directoriesList, tListM *envList);
+void execFg(char *tr[], int nArgs, tListD directoriesList, tListM *envList);
+void execFgprio(char *tr[], int nArgs, tListD directoriesList, tListM *envList);
 int BuscarVariable(char *var, char *e[]);
 int CambiarVariable(char * var, char * valor, char *e[], tListM *envList);
 int SustituirVariable(char * var, char * var2, char * valor, char *e[], tListM *envList);
 char *Ejecutable(char *s, tListD directoriesList);
 int Execpve(char *tr[], char **NewEnv, int *pprio, tListD directoriesList);
+int Execvp(char *tr[], char **NewEnv, int *pprio, tListD directoriesList);
 
 
 #endif

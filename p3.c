@@ -74,6 +74,7 @@ void cmdFork(tListP *processesList);
 void cmdSearch(char *param2, tListD *directoriesList);
 void cmdExec(char *param2, tListD directoriesList, tListM *envList);
 void cmdFg(char *param2, tListD directoriesList, tListM *envList);
+void cmdFgpri(char *param2, tListD directoriesList, tListM *envList);
 void cmdHelp(char *param2);
 void initOpenFiles(tList *openFiles);
 void printOpenFiles(tList openFiles);
@@ -396,6 +397,10 @@ void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *ex
     else if (strcmp(param1, "fg") == 0)
     {
         cmdFg(param2, *directoriesList, envList);
+    }
+    else if (strcmp(param1, "fgpri") == 0)
+    {
+        cmdFgpri(param2, *directoriesList, envList);
     }
     else if (strcmp(param1, "help") == 0)
     {
@@ -1782,6 +1787,26 @@ void cmdExec(char *param2, tListD directoriesList, tListM *envList)
     if (param2 == NULL) return;
 
     exec(tr, nArgs, directoriesList, envList);
+}
+
+void cmdFg(char *param2, tListD directoriesList, tListM *envList)
+{
+    char *tr[COMMAND_LEN];
+    int nArgs = trocearCadena(param2, tr);
+
+    if (param2 == NULL) return;
+
+    execFg(tr, nArgs, directoriesList, envList);
+}
+
+void cmdFgpri(char *param2, tListD directoriesList, tListM *envList)
+{
+    char *tr[COMMAND_LEN];
+    int nArgs = trocearCadena(param2, tr);
+
+    if (param2 == NULL) return;
+
+    execFgprio(tr, nArgs, directoriesList, envList);
 }
 
 void cmdHelp(char *param2)

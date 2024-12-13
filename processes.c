@@ -434,7 +434,43 @@ void exec(char *tr[], int nArgs, tListD directoriesList, tListM *envList)
         perror("Imposible ejecutar");
 }
 
+void execFg(char *tr[], int nArgs, tListD directoriesList, tListM *envList)
+{
+    char **newEnv;
+    char *vars[nArgs], *trozos[nArgs];
+    int varsCount, trozosCount;
 
+    separarEntrada(tr, nArgs, vars, trozos, &varsCount, &trozosCount);
+
+    if (varsCount > 0)
+        newEnv = createEnvironment(vars, varsCount, envList);
+    else
+        newEnv = NULL;
+
+    if (Execvp(trozos, newEnv, NULL, directoriesList) == -1)
+        perror("Imposible ejecutar");
+}
+
+void execFgprio(char *tr[], int nArgs, tListD directoriesList, tListM *envList)
+{
+    char **newEnv;
+    char *vars[nArgs-1], *trozos[nArgs-1];
+    int varsCount, trozosCount;
+
+    int prio = atoi(tr[0]);
+    int *prioPtr = &prio;
+    char **rest = &tr[1];
+
+    separarEntrada(rest, nArgs-1, vars, trozos, &varsCount, &trozosCount);
+
+    if (varsCount > 0)
+        newEnv = createEnvironment(vars, varsCount, envList);
+    else
+        newEnv = NULL;
+
+    if (Execvp(trozos, newEnv, prioPtr, directoriesList) == -1)
+        perror("Imposible ejecutar");
+}
 
 int BuscarVariable(char *var, char *e[])  /*busca una variable en el entorno que se le pasa como parÃ¡metro*/
 {                                           /*devuelve la posicion de la variable en el entorno, -1 si no existe*/
@@ -557,4 +593,47 @@ int Execpve(char *tr[], char **NewEnv, int *pprio, tListD directoriesList)
         return execv(p,tr);
     else
         return execve (p, tr, NewEnv);
+}
+
+int Execvp(char *tr[], char **NewEnv, int *pprio, tListD directoriesList)
+{
+    char *p;
+
+    if (tr[0] == NULL || (p = Ejecutable(tr[0], directoriesList)) == NULL) {
+        errno = EFAULT;
+        return -1;
+    }
+
+    if (pprio != NULL && setpriority(PRIO_PROCESS, getpid(), *pprio) == -1) {
+        printf("Imposible cambiar prioridad: %s\n", strerror(errno));
+        return -1;
+    }
+
+    // Creamos un proceso hijo
+    pid_t pid = fork();
+    if (pid < 0) {
+        return -1;  // Error al crear el proceso hijo
+    }
+
+    if (pid == 0) {
+        // Estamos en el proceso hijo, ejecutamos el programa
+        if (NewEnv == NULL) {
+            if (execv(p, tr) == -1) {
+                exit(1);
+            }
+        } else {
+            if (execve(p, tr, NewEnv) == -1) {
+                exit(1);
+            }
+        }
+    } else {
+        // Estamos en el proceso padre
+        int status;
+        // Esperamos que el proceso hijo termine
+        if (waitpid(pid, &status, 0) == -1) {
+            return -1;
+        }
+    }
+
+    return 0;
 }
