@@ -73,6 +73,7 @@ void cmdEnviron(char *param2, char *arg3[]);
 void cmdFork(tListP *processesList);
 void cmdSearch(char *param2, tListD *directoriesList);
 void cmdExec(char *param2, tListD directoriesList, tListM *envList);
+void cmdExecpri(char *param2, tListD directoriesList, tListM *envList);
 void cmdFg(char *param2, tListD directoriesList, tListM *envList);
 void cmdFgpri(char *param2, tListD directoriesList, tListM *envList);
 void cmdBack(char *param2, tListD directoriesList, tListM *envList, tListP *processesList);
@@ -400,6 +401,10 @@ void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *ex
     else if (strcmp(param1, "exec") == 0)
     {
         cmdExec(param2, *directoriesList, envList);
+    }
+    else if (strcmp(param1, "execpri") == 0)
+    {
+        cmdExecpri(param2, *directoriesList, envList);
     }
     else if (strcmp(param1, "fg") == 0)
     {
@@ -1824,6 +1829,16 @@ void cmdExec(char *param2, tListD directoriesList, tListM *envList)
     if (param2 == NULL) return;
 
     exec(tr, nArgs, directoriesList, envList);
+}
+
+void cmdExecpri(char *param2, tListD directoriesList, tListM *envList)
+{
+    char *tr[COMMAND_LEN];
+    int nArgs = trocearCadena(param2, tr);
+
+    if (param2 == NULL) return;
+
+    execpri(tr, nArgs, directoriesList, envList);
 }
 
 void cmdFg(char *param2, tListD directoriesList, tListM *envList)
