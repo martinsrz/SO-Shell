@@ -4,9 +4,10 @@
 #ifndef PROCESSESLIST_H
 #define PROCESSESLIST_H
 
+#include "processes.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <string.h>
 
 #define COMMAND_LEN 256
 #define LNULL NULL
@@ -16,10 +17,12 @@ typedef struct tNodeP *tPosP;
 
 typedef struct tItemP {
     pid_t pid;
-    struct tm *time;
+    command time;
     command status;
-    command name;
+    command cmnd;
+    command user;
     int priority;
+    command signal;
 } tItemP;
 
 typedef struct tNodeP {
@@ -28,6 +31,14 @@ typedef struct tNodeP {
 } tNodeP;
 
 typedef tPosP tListP;
+
+struct SEN {
+    char *nombre;
+    int senal;
+};
+
+int ValorSenal(char * sen);
+char *NombreSenal(int sen);
 
 void createEmptyListP(tListP *L);
 
@@ -56,5 +67,7 @@ tPosP nextP(tPosP p, tListP L);
 tPosP previousP(tPosP p, tListP L);
 
 int countListP(tListP L);
+
+void refreshItemP(tPosP p, tListP *L);
 
 #endif

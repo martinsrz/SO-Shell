@@ -7,98 +7,6 @@
 
 extern char **environ;
 
-/*las siguientes funciones nos permiten obtener el nombre de una senal a partir
-del nÃºmero y viceversa */
-static struct SEN sigstrnum[] = {
-    {"HUP", SIGHUP},
-    {"INT", SIGINT},
-    {"QUIT", SIGQUIT},
-    {"ILL", SIGILL},
-    {"TRAP", SIGTRAP},
-    {"ABRT", SIGABRT},
-    {"IOT", SIGIOT},
-    {"BUS", SIGBUS},
-    {"FPE", SIGFPE},
-    {"KILL", SIGKILL},
-    {"USR1", SIGUSR1},
-    {"SEGV", SIGSEGV},
-    {"USR2", SIGUSR2},
-    {"PIPE", SIGPIPE},
-    {"ALRM", SIGALRM},
-    {"TERM", SIGTERM},
-    {"CHLD", SIGCHLD},
-    {"CONT", SIGCONT},
-    {"STOP", SIGSTOP},
-    {"TSTP", SIGTSTP},
-    {"TTIN", SIGTTIN},
-    {"TTOU", SIGTTOU},
-    {"URG", SIGURG},
-    {"XCPU", SIGXCPU},
-    {"XFSZ", SIGXFSZ},
-    {"VTALRM", SIGVTALRM},
-    {"PROF", SIGPROF},
-    {"WINCH", SIGWINCH},
-    {"IO", SIGIO},
-    {"SYS", SIGSYS},
-/*senales que no hay en todas partes*/
-#ifdef SIGPOLL
-    {"POLL", SIGPOLL},
-#endif
-#ifdef SIGPWR
-    {"PWR", SIGPWR},
-#endif
-#ifdef SIGEMT
-    {"EMT", SIGEMT},
-#endif
-#ifdef SIGINFO
-    {"INFO", SIGINFO},
-#endif
-#ifdef SIGSTKFLT
-    {"STKFLT", SIGSTKFLT},
-#endif
-#ifdef SIGCLD
-    {"CLD", SIGCLD},
-#endif
-#ifdef SIGLOST
-    {"LOST", SIGLOST},
-#endif
-#ifdef SIGCANCEL
-    {"CANCEL", SIGCANCEL},
-#endif
-#ifdef SIGTHAW
-    {"THAW", SIGTHAW},
-#endif
-#ifdef SIGFREEZE
-    {"FREEZE", SIGFREEZE},
-#endif
-#ifdef SIGLWP
-    {"LWP", SIGLWP},
-#endif
-#ifdef SIGWAITING
-    {"WAITING", SIGWAITING},
-#endif
-     {NULL,-1},
-    };    /*fin array sigstrnum */
-
-
-int ValorSenal(char * sen)  /*devuelve el numero de senial a partir del nombre*/
-{
-    int i;
-    for (i=0; sigstrnum[i].nombre != NULL; i++)
-        if (!strcmp(sen, sigstrnum[i].nombre))
-            return sigstrnum[i].senal;
-    return -1;
-}
-
-char *NombreSenal(int sen)  /*devuelve el nombre senal a partir de la senal*/
-{			/* para sitios donde no hay sig2str*/
-    int i;
-    for (i=0; sigstrnum[i].nombre!=NULL; i++)
-        if (sen==sigstrnum[i].senal)
-            return sigstrnum[i].nombre;
-    return ("SIGUNKNOWN");
-}
-
 bool isUppercase(const char *str)
 {
     for (int i = 0; str[i] != '\0'; i++) {
@@ -447,7 +355,7 @@ void execFg(char *tr[], int nArgs, tListD directoriesList, tListM *envList)
     else
         newEnv = NULL;
 
-    if (Execvp(trozos, newEnv, NULL, directoriesList) == -1)
+    if (Execforeground(trozos, newEnv, NULL, directoriesList) == -1)
         perror("Imposible ejecutar");
 }
 
@@ -468,8 +376,90 @@ void execFgprio(char *tr[], int nArgs, tListD directoriesList, tListM *envList)
     else
         newEnv = NULL;
 
-    if (Execvp(trozos, newEnv, prioPtr, directoriesList) == -1)
+    if (Execforeground(trozos, newEnv, prioPtr, directoriesList) == -1)
         perror("Imposible ejecutar");
+}
+
+void execBack(char *tr[], int nArgs, tListD directoriesList, tListM *envList, tListP *processesList)
+{
+    char **newEnv;
+    char *vars[nArgs], *trozos[nArgs];
+    int varsCount, trozosCount;
+
+    separarEntrada(tr, nArgs, vars, trozos, &varsCount, &trozosCount);
+
+    if (varsCount > 0)
+        newEnv = createEnvironment(vars, varsCount, envList);
+    else
+        newEnv = NULL;
+
+    if (Execbackground(trozos, newEnv, NULL, directoriesList, processesList) == -1)
+        perror("Imposible ejecutar");
+}
+
+void execBackpri(char *tr[], int nArgs, tListD directoriesList, tListM *envList, tListP *processesList)
+{
+    char **newEnv;
+    char *vars[nArgs-1], *trozos[nArgs-1];
+    int varsCount, trozosCount;
+
+    int prio = atoi(tr[0]);
+    int *prioPtr = &prio;
+    char **rest = &tr[1];
+
+    separarEntrada(rest, nArgs-1, vars, trozos, &varsCount, &trozosCount);
+
+    if (varsCount > 0)
+        newEnv = createEnvironment(vars, varsCount, envList);
+    else
+        newEnv = NULL;
+
+    if (Execbackground(trozos, newEnv, prioPtr, directoriesList, processesList) == -1)
+        perror("Imposible ejecutar");
+}
+
+void listjobs(tListP *processesList)
+{
+    tPosP p;
+    tItemP item;
+
+    for (p = firstP(*processesList); p != NULL; p = nextP(p, *processesList))
+    {
+        refreshItemP(p, processesList);
+        item = getItemP(p, *processesList);
+
+        printf("%6d   %s p=%d %s %s (%s) %s\n", item.pid, item.user, item.priority, item.time, item.status, item.signal, item.cmnd);
+    }
+}
+
+void delterm(tListP *processesList)
+{
+    tPosP p;
+    tItemP item;
+
+    for (p = firstP(*processesList); p != NULL; p = nextP(p, *processesList))
+    {
+        item = getItemP(p, *processesList);
+
+        if (strcmp(item.status, "TERMINADO") == 0) deleteAtPositionP(p, processesList);
+    }
+
+    listjobs(processesList);
+}
+
+void delsig(tListP *processesList)
+{
+    tPosP p;
+    tItemP item;
+
+    for (p = firstP(*processesList); p != NULL; p = nextP(p, *processesList))
+    {
+        item = getItemP(p, *processesList);
+
+        if (strcmp(item.status, "TERMINADO") == 0 && strcmp(item.signal, "000") != 0) deleteAtPositionP(p, processesList);
+    }
+
+    listjobs(processesList);
 }
 
 int BuscarVariable(char *var, char *e[])  /*busca una variable en el entorno que se le pasa como parÃ¡metro*/
@@ -595,7 +585,7 @@ int Execpve(char *tr[], char **NewEnv, int *pprio, tListD directoriesList)
         return execve (p, tr, NewEnv);
 }
 
-int Execvp(char *tr[], char **NewEnv, int *pprio, tListD directoriesList)
+int Execforeground(char *tr[], char **NewEnv, int *pprio, tListD directoriesList)
 {
     char *p;
 
@@ -619,10 +609,12 @@ int Execvp(char *tr[], char **NewEnv, int *pprio, tListD directoriesList)
         // Estamos en el proceso hijo, ejecutamos el programa
         if (NewEnv == NULL) {
             if (execv(p, tr) == -1) {
+                perror("Imposible ejecutar");
                 exit(1);
             }
         } else {
             if (execve(p, tr, NewEnv) == -1) {
+                perror("Imposible ejecutar");
                 exit(1);
             }
         }
@@ -633,6 +625,86 @@ int Execvp(char *tr[], char **NewEnv, int *pprio, tListD directoriesList)
         if (waitpid(pid, &status, 0) == -1) {
             return -1;
         }
+    }
+
+    return 0;
+}
+
+int Execbackground(char *tr[], char **NewEnv, int *pprio, tListD directoriesList, tListP *processesList)
+{
+    char *p;
+
+    // Si no se encuentra el ejecutable, retorna un error
+    if (tr[0] == NULL || (p = Ejecutable(tr[0], directoriesList)) == NULL)
+    {
+        errno = EFAULT;
+        return (-1);
+    }
+
+    // Cambiar la prioridad del proceso si es necesario
+    if (pprio != NULL && setpriority(PRIO_PROCESS, getpid(), *pprio) == -1)
+    {
+        printf("Imposible cambiar prioridad: %s\n", strerror(errno));
+        return (-1);
+    }
+
+    // Creamos un proceso hijo
+    pid_t pid = fork();
+    if (pid < 0) return (-1);  // Error al crear el proceso hijo
+
+    if (pid == 0)
+    {
+        // Estamos en el proceso hijo, ejecutar el programa en segundo plano
+
+        // Desasociar el proceso del terminal
+        if (setsid() < 0) {
+            perror("Imposible ejecutar");
+            exit(1);
+        }
+
+        // Ejecutamos el programa
+        if (NewEnv == NULL)
+        {
+            if (execv(p, tr) == -1) {
+                perror("Imposible ejecutar");
+                exit(1);
+            }
+        }
+        else
+        {
+            if (execve(p, tr, NewEnv) == -1) {
+                perror("Imposible ejecutar");
+                exit(1);
+            }
+        }
+    }
+    else
+    {
+        struct passwd *usr;
+        usr = getpwuid(getuid());
+        time_t startedTime = time(NULL);
+        struct tm *startedTimeInfo = localtime(&startedTime);
+        char fecha[30];
+        strftime(fecha, sizeof(fecha), "%Y/%m/%d %H:%M:%S", startedTimeInfo);
+
+        tItemP item;
+
+        item.pid = pid;
+        strcpy(item.time, fecha);
+        strcpy(item.status, "ACTIVO");
+        item.priority = (pprio != NULL) ? *pprio : 0;
+        strcpy(item.user, (usr != NULL) ? usr->pw_name : "unknown");
+        strcpy(item.signal, "000");
+
+        memset(item.cmnd, 0, sizeof(item.cmnd));
+
+        for (int i = 0; tr[i] != NULL; i++)
+        {
+            strcat(item.cmnd, tr[i]);
+            strcat(item.cmnd, " ");
+        }
+
+        insertItemP(item, NULL, processesList);
     }
 
     return 0;

@@ -16,10 +16,10 @@
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include "list.h"
+#include "processes.h"
+#include "processesList.h"
 #include "memoryList.h"
 #include "memory.h"
-#include "processesList.h"
-#include "processes.h"
 #include "directoriesList.h"
 
 #define MAX_LENGTH 256
@@ -75,6 +75,10 @@ void cmdSearch(char *param2, tListD *directoriesList);
 void cmdExec(char *param2, tListD directoriesList, tListM *envList);
 void cmdFg(char *param2, tListD directoriesList, tListM *envList);
 void cmdFgpri(char *param2, tListD directoriesList, tListM *envList);
+void cmdBack(char *param2, tListD directoriesList, tListM *envList, tListP *processesList);
+void cmdBackpri(char *param2, tListD directoriesList, tListM *envList, tListP *processesList);
+void cmdListjobs(char *param2, tListP *processesList);
+void cmdDeljobs(char *param2, tListP *processesList);
 void cmdHelp(char *param2);
 void initOpenFiles(tList *openFiles);
 void printOpenFiles(tList openFiles);
@@ -200,6 +204,7 @@ void shellLoop(bool exit, char *arg3[])
     deleteListM(&envList);
     deleteListM(&memoryList);
     deleteListD(&directoriesList);
+    deleteListP(&processesList);
 }
 
 void printPrompt()
@@ -212,7 +217,9 @@ void readCommand(command *command, tList *commandList)
     tItem item;
     char *tr[COMMAND_LEN];
 
-    fgets(*command, COMMAND_LEN, stdin);
+    if (fgets(*command, COMMAND_LEN, stdin) == NULL || (*command)[0] == '\n') {
+        return;
+    }
 
     strcpy(item.command, *command);
     insertItem(item, LNULL, commandList);
@@ -402,6 +409,22 @@ void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *ex
     {
         cmdFgpri(param2, *directoriesList, envList);
     }
+    else if (strcmp(param1, "back") == 0)
+    {
+        cmdBack(param2, *directoriesList, envList, processesList);
+    }
+    else if (strcmp(param1, "backpri") == 0)
+    {
+        cmdBackpri(param2, *directoriesList, envList, processesList);
+    }
+    else if (strcmp(param1, "listjobs") == 0)
+    {
+        cmdListjobs(param2, processesList);
+    }
+    else if (strcmp(param1, "deljobs") == 0)
+    {
+        cmdDeljobs(param2, processesList);
+    }
     else if (strcmp(param1, "help") == 0)
     {
         cmdHelp(param2);
@@ -410,7 +433,21 @@ void commands(tList *commandList, tList *openFiles, tListM *memoryList, bool *ex
     {
         *exit = true;
     }
-    else printf("Comando no reconocido\n");
+    else
+    {
+        if (param1 == NULL) return;
+        if (param2 == NULL)
+        {
+            strcat(param1, " ");
+        }
+        else
+        {
+            strcat(param1, " ");
+            strcat(param1, param2);
+        }
+
+        cmdFg(param1, *directoriesList, envList);
+    }
 }
 
 void cmdAuthors(char *param2)
@@ -1809,6 +1846,54 @@ void cmdFgpri(char *param2, tListD directoriesList, tListM *envList)
     execFgprio(tr, nArgs, directoriesList, envList);
 }
 
+void cmdBack(char *param2, tListD directoriesList, tListM *envList, tListP *processesList)
+{
+    char *tr[COMMAND_LEN];
+    int nArgs = trocearCadena(param2, tr);
+
+    if (param2 == NULL) return;
+
+    execBack(tr, nArgs, directoriesList, envList, processesList);
+}
+
+void cmdBackpri(char *param2, tListD directoriesList, tListM *envList, tListP *processesList)
+{
+    char *tr[COMMAND_LEN];
+    int nArgs = trocearCadena(param2, tr);
+
+    if (param2 == NULL) return;
+
+    execBackpri(tr, nArgs, directoriesList, envList, processesList);
+}
+
+void cmdListjobs(char *param2, tListP *processesList)
+{
+    listjobs(processesList);
+}
+
+void cmdDeljobs(char *param2, tListP *processesList)
+{
+    char *tr[COMMAND_LEN];
+    trocearCadena(param2, tr);
+
+    if (param2 == NULL)
+    {
+        listjobs(processesList);
+        return;
+    }
+
+    if (strcmp(tr[0], "-term") == 0)
+    {
+        delterm(processesList);
+        return;
+    }
+
+    if (strcmp(tr[0], "-sig") == 0)
+    {
+        delsig(processesList);
+    }
+}
+
 void cmdHelp(char *param2)
 {
     if (param2 == NULL)
@@ -1945,6 +2030,74 @@ void cmdHelp(char *param2)
     else if (strcmp(param2, "recurse") == 0)
     {
         printf("recurse [-n]\tInvoca a la funcion recursiva n veces\n");
+    }
+    else if (strcmp(param2, "getuid") == 0)
+    {
+        printf("getuid\tMuestra las credenciales del proceso que ejecuta el shell\n");
+    }
+    else if (strcmp(param2, "setuid") == 0)
+    {
+        printf("setuid [-l] id Cambia las credenciales del proceso que ejecuta el shell"
+               "\n\tid: establece la credencial al valor numerico id\n\t-l id: establece la credencial a login id\n");
+    }
+    else if (strcmp(param2, "showvar") == 0)
+    {
+        printf("showvar var\tMuestra el valor y las direcciones de la variable de entorno var\n");
+    }
+    else if (strcmp(param2, "changevar") == 0)
+    {
+        printf("changevar [-a|-e|-p] var valor  Cambia el valor de una variable de entorno"
+               "\n\t-a: accede por el tercer arg de main\n\t-e: accede mediante environ\n\t-p: accede mediante putenv\n");
+    }
+    else if (strcmp(param2, "subsvar") == 0)
+    {
+        printf("subsvar [-a|-e] var1 var2 valor  Sustituye la variable de entorno var1 con var2 = valor"
+               "\n\t-a: accede por el tercer arg de main\n\t-e: accede mediante environ\n");
+    }
+    else if (strcmp(param2, "environ") == 0)
+    {
+        printf("environ [-environ|-addr] Muestra el entorno del proceso"
+               "\n\t-environ: accede usando environ (en lugar del tercer arg de main)\n\t-addr: muestra el valor y donde se almacenan "
+               "environ y el 3er arg main\n");
+    }
+    else if (strcmp(param2, "fork") == 0)
+    {
+        printf("fork\tEl shell hace fork y queda en espera a que su hijo termine\n");
+    }
+    else if (strcmp(param2, "search") == 0)
+    {
+        printf("search [-add|-del|-clear|-path].. Manipula o muestra la ruda de busqueda del shell (path)"
+               "\n\t-add dir: anade dir a la ruta de busqueda\n\t-del dir: elimina dir de la ruta de busqueda"
+               "\n\t-clear: vacia la ruta de busqueda\n\t-path: importa el PATH en la ruta de busqueda\n");
+    }
+    else if (strcmp(param2, "exec") == 0)
+    {
+        printf("exec VAR1 VAR2 ..prog args..  Ejecuta, sin crear proceso, prog con args\n\ten un entorno que contiene solo las variables VAR1 VAR2...\n");
+    }
+    else if (strcmp(param2, "fg") == 0)
+    {
+        printf("fg ..prog args..  Crea un proceso que ejecuta en primer plano prog con argumentos\n");
+    }
+    else if (strcmp(param2, "fgpri") == 0)
+    {
+        printf("fgpri prio ..prog args..  Crea un proceso que ejecuta en primer plano prog con argumentos con la prioridad cambiada a prio\n");
+    }
+    else if (strcmp(param2, "back") == 0)
+    {
+        printf("back ..prog args..  Crea un proceso que ejecuta en segundo plano prog con argumentos\n");
+    }
+    else if (strcmp(param2, "backpri") == 0)
+    {
+        printf("backpri prio ..prog args..  Crea un proceso que ejecuta en segundo plano prog con argumentos con la prioridad cambiada a prio\n");
+    }
+    else if (strcmp(param2, "lisjobs") == 0)
+    {
+        printf("listjobs\tLista los procesos en segundo plano\n");
+    }
+    else if (strcmp(param2, "deljobs") == 0)
+    {
+        printf("deljobs [-term|-sig] Elimina los procesos de la lista de procesos en sp"
+               "\n\t-term: los terminados\n\t-sig: los terminados por senal\n");
     }
     else if (strcmp(param2, "help") == 0)
     {

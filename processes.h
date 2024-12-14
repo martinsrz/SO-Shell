@@ -18,20 +18,13 @@
 #include <errno.h>
 #include <sys/shm.h>
 #include <sys/resource.h>
-#include "processesList.h"
-#include "directoriesList.h"
 #include "list.h"
 #include "memoryList.h"
+#include "directoriesList.h"
+#include "processesList.h"
 
 #define MAXVAR 2048
 
-struct SEN {
-    char *nombre;
-    int senal;
-};
-
-int ValorSenal(char * sen);
-char *NombreSenal(int sen);
 void getUid();
 void uidSetId(char *id);
 void uidSetUsername(char *username);
@@ -51,12 +44,18 @@ void searchPath(tListD *directoriesL);
 void exec(char *tr[], int nArgs, tListD directoriesList, tListM *envList);
 void execFg(char *tr[], int nArgs, tListD directoriesList, tListM *envList);
 void execFgprio(char *tr[], int nArgs, tListD directoriesList, tListM *envList);
+void execBack(char *tr[], int nArgs, tListD directoriesList, tListM *envList, tListP *processesList);
+void execBackpri(char *tr[], int nArgs, tListD directoriesList, tListM *envList, tListP *processesList);
+void listjobs(tListP *processesList);
+void delterm(tListP *processesList);
+void delsig(tListP *processesList);
 int BuscarVariable(char *var, char *e[]);
 int CambiarVariable(char * var, char * valor, char *e[], tListM *envList);
 int SustituirVariable(char * var, char * var2, char * valor, char *e[], tListM *envList);
 char *Ejecutable(char *s, tListD directoriesList);
 int Execpve(char *tr[], char **NewEnv, int *pprio, tListD directoriesList);
-int Execvp(char *tr[], char **NewEnv, int *pprio, tListD directoriesList);
+int Execforeground(char *tr[], char **NewEnv, int *pprio, tListD directoriesList);
+int Execbackground(char *tr[], char **NewEnv, int *pprio, tListD directoriesList, tListP *processesList);
 
 
 #endif
