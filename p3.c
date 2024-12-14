@@ -2089,6 +2089,10 @@ void cmdHelp(char *param2)
     {
         printf("exec VAR1 VAR2 ..prog args..  Ejecuta, sin crear proceso, prog con args\n\ten un entorno que contiene solo las variables VAR1 VAR2...\n");
     }
+    else if (strcmp(param2, "execpri") == 0)
+    {
+        printf("execpri prio ..prog args..  Ejecuta, sin crear proceso, prog con args con la prioridad cambiada a prio\n");
+    }
     else if (strcmp(param2, "fg") == 0)
     {
         printf("fg ..prog args..  Crea un proceso que ejecuta en primer plano prog con argumentos\n");
