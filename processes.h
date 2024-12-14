@@ -42,6 +42,7 @@ void searchAddDir(char *dir, tListD *directoriesList);
 void searchDelDir(char *dir, tListD *directoriesList);
 void searchPath(tListD *directoriesL);
 void exec(char *tr[], int nArgs, tListD directoriesList, tListM *envList);
+void execpri(char *tr[], int nArgs, tListD directoriesList, tListM *envList);
 void execFg(char *tr[], int nArgs, tListD directoriesList, tListM *envList);
 void execFgprio(char *tr[], int nArgs, tListD directoriesList, tListM *envList);
 void execBack(char *tr[], int nArgs, tListD directoriesList, tListM *envList, tListP *processesList);
