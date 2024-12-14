@@ -342,6 +342,27 @@ void exec(char *tr[], int nArgs, tListD directoriesList, tListM *envList)
         perror("Imposible ejecutar");
 }
 
+void execpri(char *tr[], int nArgs, tListD directoriesList, tListM *envList)
+{
+    char **newEnv;
+    char *vars[nArgs], *trozos[nArgs];
+    int varsCount, trozosCount;
+
+    int prio = atoi(tr[0]);
+    int *prioPtr = &prio;
+    char **rest = &tr[1];
+
+    separarEntrada(rest, nArgs-1, vars, trozos, &varsCount, &trozosCount);
+
+    if (varsCount > 0)
+        newEnv = createEnvironment(vars, varsCount, envList);
+    else
+        newEnv = NULL;
+
+    if (Execpve(trozos, newEnv, prioPtr, directoriesList) == -1)
+        perror("Imposible ejecutar");
+}
+
 void execFg(char *tr[], int nArgs, tListD directoriesList, tListM *envList)
 {
     char **newEnv;
