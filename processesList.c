@@ -2,6 +2,7 @@
 // Diego Candal Varela
 
 #include "processesList.h"
+#include "processes.h"
 
 static struct SEN sigstrnum[] = {
 	{"HUP", SIGHUP},
