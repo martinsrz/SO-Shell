@@ -477,7 +477,7 @@ void delsig(tListP *processesList)
     {
         item = getItemP(p, *processesList);
 
-        if (strcmp(item.status, "TERMINADO") == 0 && strcmp(item.signal, "000") != 0) deleteAtPositionP(p, processesList);
+        if (strcmp(item.status, "SENALADO") == 0 && strcmp(item.signal, "000") != 0) deleteAtPositionP(p, processesList);
     }
 
     listjobs(processesList);
